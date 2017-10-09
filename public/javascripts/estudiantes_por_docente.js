@@ -1,5 +1,6 @@
 var now = new Date();//Hora del sistema.
-var mes=now.getMonth()+1;//formato string mes actual
+//var mes=now.getMonth()+1;//formato string mes actual
+var mes=1;
 
 $(document).ready(function(){
   Load_Insert();//Define si muestra o no el formulario
@@ -28,7 +29,8 @@ $(document).ready(function(){
 function Load_Insert(){//Define si muestra o no el formulario
                       //de ingreso de datos tomando en cuenta la fecha de sistema y
                       //anterior entrada
-  var anho=now.getFullYear();//formato string año actual
+  //var anho=now.getFullYear();//formato string año actual
+  var anho=2018;
   $('#tabledoctc').html('Registro Semestre ');
   $('#tablest').html('Registro Semestre ');
   if(mes<3){
@@ -607,8 +609,9 @@ function opendivupdate(year,month){//carga formulario de ingreso-actualizacion d
                                           //el semestre B del año anterior se encuentra al día
             $('#ndoctc').html('Promedio de Docentes Tiempo Completo: '+json.rows[0].docentesprom);
             $("#flagdoctc").html('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Número de Docentes Tiempo Completo al día"></td>');
-            $('#nest').html('<input type="number" pattern="[0-9]" id="est1" value='+json.rows[0].estudiantesa+' max="99999" style="width: 6em" class="form-control" required>');
-            $('#updest').html('<span class="btn btn-warning btn-small"><a onclick="Load_Update()"><img title="Ingresar" alt="Ingresar" /></a></span>');
+            /*$('#nest').html('<input type="number" pattern="[0-9]" id="est1" value='+json.rows[0].estudiantesa+' max="99999" style="width: 6em" class="form-control" required>');
+            $('#updest').html('<span class="btn btn-warning btn-small"><a onclick="Load_Update()"><img title="Ingresar" alt="Ingresar" /></a></span>');*/
+            $('#updest').html('<span class="btn btn-primary"><a onclick="openmodaluploadEstudiantes()"><img title="Actualizar" alt="Actualizar"/></a></span>');
           }
           else {
             $('#ndoctc').html('Promedio de Docentes Tiempo Completo: '+json.rows[0].docentesa);
@@ -700,8 +703,9 @@ function Search_View(fec,sem,estudiantes,docentes){//consulta si existe un regis
         if (json.rowCount) {//si esta condicion se cumple significa que el indicador de nivel de formación está actualizado
             $('#ndoctc').html('Promedio de Docentes Tiempo Completo: '+json.rows[0].docentesa);
             $("#flagdoctc").html('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Número de Docentes Tiempo Completo al día"></td>');
-            $('#nest').html('<input type="number" pattern="[0-9]" id="est1" value='+estudiantes+' max="99999" style="width: 6em" class="form-control" required>');
-            $('#updest').html('<span class="btn btn-primary"><a onclick="Load_Update()"><img title="Ingresar" alt="Ingresar" /></a></span>');
+            /*$('#nest').html('<input type="number" pattern="[0-9]" id="est1" value='+estudiantes+' max="99999" style="width: 6em" class="form-control" required>');
+            $('#updest').html('<span class="btn btn-primary"><a onclick="Load_Update()"><img title="Ingresar" alt="Ingresar" /></a></span>');*/
+            $('#updest').html('<span class="btn btn-primary"><a onclick="openmodaluploadEstudiantes()"><img title="Actualizar" alt="Actualizar"/></a></span>');
         }
         else {//advertencia y enlace a carga de archivo para ctualizar nivel de formacion de docentes
             $('#ndoctc').html('Promedio de Docentes Tiempo Completo: '+docentes);

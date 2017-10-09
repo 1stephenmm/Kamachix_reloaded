@@ -722,6 +722,19 @@ function openmodaluploadperiodo(){
   $("#modaluploadperiodo").modal('show');
 }
 
+//abre modal para cargar datos de estudiantes por departamento
+function openmodaluploadEstudiantes(){
+  $('#mesage span').removeClass('green');
+  $('#mesage span').addClass('red');
+  $('#mesage p').removeClass('green');
+  $('#mesage p').addClass('red');
+  $('#mesage span').removeClass('glyphicon glyphicon-alert');
+  $('#mesage span').removeClass('glyphicon glyphicon-ok');
+  $('#mesage span').removeClass('glyphicon glyphicon-remove')
+  $('#mesage p').html('');
+  $("#modaluploadEstudiantes").modal('show');
+}
+
 //abre modal para login de la aplicacion
 function openmodallogin(){
   $("#modalrestart").modal('hide');
