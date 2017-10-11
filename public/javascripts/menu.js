@@ -100,6 +100,27 @@ $(document).ready(function(){
     event.preventDefault();
   });
 
+  //se ejecuta al submit de el boton para cargar el archivo de informacion de estudiantes en cada departamento
+  $('#uploadestudiantes').submit(function(event){
+    var cx = comprueba_extension($('#filestudiantes').val());
+    $('#mesage span').removeClass('green');
+    $('#mesage span').addClass('red');
+    $('#mesage p').removeClass('green');
+    $('#mesage p').addClass('red');
+    if(cx===0) {
+      $('#mesage span').addClass('glyphicon glyphicon-alert');
+      $('#mesage p').html('Seleccione un archivo!!');
+    }
+    else if(cx===1) {
+      $('#mesage span').addClass('glyphicon glyphicon-alert');
+      $('#mesage p').html('Formato de archivo no valido!!');
+    }
+    else{
+      loadfile('/uploadfilestudiantes','filestudiantes');
+    }
+    event.preventDefault();
+  });
+
   //se ejecuta al dar click para recuperar contraseña
   $('#frmrecover').submit(function(event){
     var formData = {
