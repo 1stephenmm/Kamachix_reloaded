@@ -3,9 +3,9 @@ var now = new Date();//Hora del sistema.
 var mes=1;
 
 $(document).ready(function(){
-  Load_Insert();//Define si muestra o no el formulario
+  /*Load_Insert();//Define si muestra o no el formulario
                       //de ingreso de datos tomando en cuenta la fecha de sistema y
-                      //anterior entrada
+                      //anterior entrada*/
   Load_Start();//carga tabla y gráficos a partir de datos almacenados anteriormente
   Load_Semiannual();
   Load_Year_List();//carga menú desplegable de años para el formulario de filtro
@@ -459,7 +459,7 @@ function Load_Year_List(){//carga menú desplegable de años para el formulario 
   });
 }
 
-function Load_Filter(){//valida y carga filtro de años a consulta KPI
+/*function Load_Filter(){//valida y carga filtro de años a consulta KPI
   var ban = true;
   //se obtiene los valores de las input en variables
   var yearfrom = $("#lstanho1").val(), yearto = $("#lstanho2").val();
@@ -545,6 +545,28 @@ function Load_Filter(){//valida y carga filtro de años a consulta KPI
     });
   }
   closedivfilter();
+}*/
+
+function Load_filter_year(){
+  $("#lst_anho").html('');
+ //ajax para llenar la lista de años
+ $.ajax({
+   type: "post", //el el tipo de peticion puede ser GET y POsT
+   url: "consultaFiltradaEstudiantesDocentes", //la url del que realizara la consulta
+   dataType : 'json',
+   data:{
+     'program':$("#lst_dep").val()},//Primera consulta
+      //se ejecutasi todo se realiza bien
+     success : function(json) {
+      $("#lst_anho").append('<option value="0" selected>Seleccionar Año</option>');
+      // llenado de lista de años
+      var r3="";
+      for(var i = 0 ; i<json.rowCount; i++){
+        r3 = r3+"<option value='"+json.rows[i].anio+"'>"+ json.rows[i].anio+"</option> ";
+      }
+      $("#lst_anho").append(r3);
+     }
+ });
 }
 
 function Load_Update(){//carga datos obtenidos del formulario de ingreso de estudiantes-docentes

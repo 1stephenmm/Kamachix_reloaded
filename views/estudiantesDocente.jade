@@ -28,20 +28,37 @@ block resto
           h4#modal-title.modal-title Filtros
         .modal-body
           form#frmfilter(method='POST' action='consultaB')
-            br           
-            .col-md-2 
+            //br           
+            //.col-md-2 
               label(for='lstanho1') Años De:
-            .col-md-3
+            //.col-md-3
               select#lstanho1.form-control
           
-            .col-md-3
+            //.col-md-3
               label(for='lstanho2') a
-            .col-md-3
+            //.col-md-3
               select#lstanho2.form-control
-            .col-md-1
+            //.col-md-1
+            //br
+            //br
+            //br
             br
+            .col-md-5
+              label
+                 |Departamento:               
+              select#lst_dep.form-control(name='lst_dep' onchange='Load_filter_year()')                             
+            .col-md-4              
+              label
+                 |Año: 
+              select#lst_anho.form-control(name='lst_anho' onchange='Load_filter_period()')                                                         
+            .col-md-3                
+              label
+                |periodo:              
+              select#lst_per.form-control
+            br   
             br
-            br
+            br  
+            br           
             input(type='submit' value='Filtrar' class='btn btn-success' )        
   .col-md-8
     h3 
