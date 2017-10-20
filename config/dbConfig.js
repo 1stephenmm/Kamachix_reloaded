@@ -4,7 +4,7 @@ var pg = require("pg");
 function configdb(){
   var config = {
     user: 'postgres', //env var: PGUSER
-    database: 'datos_indicadores_reloaded', //env var: PGDATABASE
+    database: 'datos_indicadores', //env var: PGDATABASE
     //password: 'kamachix', //env var: PGPASSWORD
     password: '123',
     host: 'localhost', // Server hosting the postgres database

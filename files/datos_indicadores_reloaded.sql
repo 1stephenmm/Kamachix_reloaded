@@ -381,27 +381,13 @@ BEGIN
 								departamento=NEW.departamento),
 						razonb=(
 							SELECT 
-								t3.eb/t4.db::numeric(3,0)
-							FROM ( 
-								SELECT anho,matriculados AS eb
-								FROM estudiantes_departamento 
-								WHERE 
-									periodo = NEW.periodo 
-								AND 
-									anho = NEW.anho
-								AND 
-									departamento = NEW.departamento) t3
-							JOIN ( 
-								SELECT anio,departamento,sum(t_completo) AS db
-								FROM formacion_departamento 
-								WHERE 
-									periodo = NEW.periodo 
-								AND 
-									anio=NEW.anho 
-								AND 
-									departamento=NEW.departamento 
-								GROUP BY anio,departamento) t4 
-							ON t4.departamento=NEW.departamento)
+								(2*(estudiantes/docentes)-razona)
+							FROM 
+								"Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
+							WHERE
+								"Anho"=NEW.anho
+							AND 
+								departamento=NEW.departamento)
 					WHERE 
 						"Anho"=new.anho
 					AND
