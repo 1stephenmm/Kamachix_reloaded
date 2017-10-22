@@ -249,6 +249,10 @@ BEGIN
 								anio=NEW.anho
 							AND 
 								departamento=NEW.departamento);
+					WHERE 
+						"Anho"=new.anho
+					AND
+						departamento=NEW.departamento;
 				UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
 					SET 
 						razonanual=(
