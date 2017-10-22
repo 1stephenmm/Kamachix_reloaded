@@ -42,7 +42,7 @@ block resto
             .col-md-5
               label(for='lstdep')
                 |Departamento:              
-              select#lstprog.form-control(name='lstprog' onchange="loadlstsperiod()")          
+              select#lstdep.form-control(name='lstdep' onchange="Load_Year_List()")          
             .col-md-4                        
                 label(for='lstanho1') Años De:                         
                 select#lstanho1.form-control
@@ -57,7 +57,8 @@ block resto
   .col-md-8
     h3 
       span#more.glyphicon.glyphicon-question-sign(onclick='openinfo()')
-      | Panorama General Estudiantes por Docente
+      | Panorama General Estudiantes por Docente de:
+    h3#departamento
     br
   .col-md-2
   .col-md-12

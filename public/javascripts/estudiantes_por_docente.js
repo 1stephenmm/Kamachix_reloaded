@@ -7,6 +7,10 @@ $(document).ready(function(){
                       //de ingreso de datos tomando en cuenta la fecha de sistema y
                       //anterior entrada*/
   Load_Start();//carga tabla y gráficos a partir de datos almacenados anteriormente
+  Load_Department_List();
+  //solo queda el valor de Seleccionar año en las listas
+  $("#lstanho1").append('<option value="0" selected>Seleccionar Año</option>');
+  $("#lstanho2").append('<option value="0" selected>Seleccionar Año</option>');
   Load_Semiannual();
   Load_Year_List();//carga menú desplegable de años para el formulario de filtro
 
@@ -126,6 +130,7 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
    dataType : 'json',
    data:{c:1},//señala a la consulta general de indicador a lo largo de los años en datawarehouse
    success : function(json) {
+    $("#departamento").html('UDENAR');
      //alert(json.rowCount);
        for (var i = json.rowCount-1; i >=json.rowCount-5; i--) {
         $('#meta').html('Meta: Menor a '+parseInt(json.rows[i].num_Rango_MA)+' (Estudiantes/Docente)');
@@ -272,25 +277,25 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
        //cambio
       $("#graph1").change(function () {
         if($(this).val() === '1'){
-          columnGraph(datarray,'divgraph2','Número de Estudiantes por Docente \n',json.fields[0].name,json.fields[1].name,0,0);
+          columnGraph(datarray,'divgraph2','Número de Estudiantes por Docente \nUDENAR',json.fields[0].name,json.fields[1].name,0,0);
         }
         else if($(this).val() === '2'){
-          columnGraph(datarray,'divgraph2','Número de Estudiantes por Docente \n',json.fields[0].name,json.fields[1].name,40,30);
+          columnGraph(datarray,'divgraph2','Número de Estudiantes por Docente \nUDENAR',json.fields[0].name,json.fields[1].name,40,30);
         }
         else if($(this).val() === '3'){
-          lineGraph(datarray,'divgraph2','Número de Estudiantes por Docente \n',json.fields[0].name,json.fields[1].name);
+          lineGraph(datarray,'divgraph2','Número de Estudiantes por Docente \nUDENAR',json.fields[0].name,json.fields[1].name);
         }
         else if($(this).val() === '4'){
-          areaGraph(datarray,'divgraph2','Número de Estudiantes por Docente \n',json.fields[0].name,json.fields[1].name);
+          areaGraph(datarray,'divgraph2','Número de Estudiantes por Docente \nUDENAR',json.fields[0].name,json.fields[1].name);
         }
         else if($(this).val() === '5'){
-          barGraph(datarray,'divgraph2','Número de Estudiantes por Docente \n',json.fields[0].name,json.fields[1].name,0,0);
+          barGraph(datarray,'divgraph2','Número de Estudiantes por Docente \nUDENAR',json.fields[0].name,json.fields[1].name,0,0);
         }
         else if($(this).val() === '6'){
-          barGraph(datarray,'divgraph2','Número de Estudiantes por Docente \n',json.fields[0].name,json.fields[1].name,40,30);
+          barGraph(datarray,'divgraph2','Número de Estudiantes por Docente \nUDENAR',json.fields[0].name,json.fields[1].name,40,30);
         }
       });
-      columnGraph(datarray,'divgraph2','Número de Estudiantes por Docente \n',json.fields[0].name,json.fields[1].name,0,0);
+      columnGraph(datarray,'divgraph2','Número de Estudiantes por Docente \nUDENAR',json.fields[0].name,json.fields[1].name,0,0);
 
       if(mes<=6){
         //semaforo divgraph3
@@ -434,11 +439,16 @@ function Load_Semiannual(){//carga graficos semestralizados de indicador a lo la
 }
 
 function Load_Year_List(){//carga menú desplegable de años para el formulario de filtro
-   $.ajax({
+  $("#lstanho1").html("");//estas dos líneas evitan la repetición del menú de años por selecciones anteriores
+  $("#lstanho2").html("");
+  $.ajax({
     type: "get", //el el tipo de peticion puede ser GET y POsT
     url: "consultaDocentesTC", //la url del que realizara la consulta
     dataType : 'json',
-    data:{c:1},//se envia un valor para despues coneste saber que consulta
+    data:{
+      c:7,
+      'department':$("#lstdep").val()
+    },//se envia un valor para despues coneste saber que consulta
     //realizar a la base de daos
     //se ejecutasi todo se realiza bien
     success : function(json) {
@@ -459,10 +469,33 @@ function Load_Year_List(){//carga menú desplegable de años para el formulario 
   });
 }
 
-/*function Load_Filter(){//valida y carga filtro de años a consulta KPI
+function Load_Department_List(){
+  $.ajax({
+   type: "get", //el el tipo de peticion puede ser GET y POsT
+   url: "consultaDocentesTC", //la url del que realizara la consulta
+   dataType : 'json',
+   data:{c:8},//se envia un valor para despues coneste saber que consulta
+   //realizar a la base de daos
+   //se ejecutasi todo se realiza bien
+   success : function(json) {
+     $("#lstdep").append('<option selected value="'+
+     '0'+'">'
+     +'Seleccione Departamento'
+     +'</option>');
+     for (var i = 0; i < json.rowCount; i++) {
+       $("#lstdep").append('<option value="'+
+       json.rows[i].departamento+'">'
+       +json.rows[i].name
+       +'</option>');
+     }
+   }
+ });
+}
+
+function Load_Filter(){//valida y carga filtro de años a consulta KPI
   var ban = true;
   //se obtiene los valores de las input en variables
-  var yearfrom = $("#lstanho1").val(), yearto = $("#lstanho2").val();
+  var department = $("#lstdep").val(), yearfrom = $("#lstanho1").val(), yearto = $("#lstanho2").val();
   if(yearfrom==0 && yearto==0){
     ban=false;
     $("#messageError").html("Seleccione una opción de cada lista");
@@ -481,6 +514,7 @@ function Load_Year_List(){//carga menú desplegable de años para el formulario 
 
   //se coloca los datos del form en el formato adecuado para enviar al server
   var formData = {
+    'department': department,
     'yearfrom': yearfrom,
     'yearto':yearto
   };
@@ -492,60 +526,68 @@ function Load_Year_List(){//carga menú desplegable de años para el formulario 
       data : formData,
       dataType : 'json',
       success : function(json) {
-        var now = new Date();
-        $("#lblper").html("<br> Indicador Estudiantes por Docente Tiempo Completo años: "+json.datos[0].Anho+" a "+json.datos[json.count-1].Anho);
-        $("#graph3").change(function () {
-          if($(this).val() === '1'){
-            columnTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre',json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],0,0,"A","B");
-          }
-          else if($(this).val() === '2'){
-            columnTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre',json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],40,30,"A","B");
-          }
-          else if($(this).val() === '3'){
-            lineTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre',json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],"A","B");
-          }
-          else if($(this).val() === '4'){
-            barTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre',json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],0,0,"A","B");
-          }
-          else if($(this).val() === '5'){
-            barTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre',json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],40,30,"A","B");
-          }
-        });
-        columnTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre',json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],0,0,"A","B");
-        
-        lineTwoGraph(json.datos,'divgraph4','Número de estudiantes por Docente\n por Semestre',json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],"A","B");
-        //semaforo divper2 y divper1     
-        if(json.datos[json.count-1].sim_Rango_MA == '> ' && json.datos[json.count-1].sim_Rango_I == '< '){
-          gaugesGraph(json.datos[0].razonanual,'divper1','r','y','g',json.datos[0].num_Rango_I,json.datos[0].num_Rango_MA, 'Estudiantes por Docente año:'+json.datos[0].Anho, '');
-          gaugesGraph(json.datos[json.count-1].razonanual,'divper2','r','y','g',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por Docente año: '+ json.datos[json.count-1].Anho, '');            
-          
-          
-        }      
-        else if(json.datos[json.count-1].sim_Rango_MA === '= ' && json.datos[json.count-1].sim_Rango_A == '< ' && json.datos[json.count-1].sim_Rango_A == '> ' ){    
-          gaugesGraph(json.datos[0].razonanual,'divper1','r','g','y',json.datos[0].num_Rango_I,json.datos[0].num_Rango_MA, 'Estudiantes por Docente año:'+json.datos[0].Anho, '');
-          gaugesGraph(json.datos[json.count-1].razonanual,'divper2','r','g','y',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por Docente año: '+ json.datos[json.count-1].Anho, '');                        
-          
-        }     
-
-        else if(json.datos[json.count-1].sim_Rango_MA === '= ' && json.datos[json.count-1].sim_Rango_A == '< ' && json.datos[json.count-1].sim_Rango_A == '< ' ){
-          //alert('los simbolos para los rangos Adecuado e inadecuado no pueden ser el simbolo menor(<). por ende la grafica del estado del indicador (velocimetro) no se mostrara');
-          $("#messageError").html("los simbolos para los rangos Adecuado e inadecuado no pueden ser el simbolo menor(<).");
+        if(json.Error){
+          $("#messageError").html("No existen datos");
           $('#myModal').modal('show');
-          
+          Load_Start();
         }
-        else {                      
-          gaugesGraph(json.datos[0].razonanual,'divper1','g','y','r',json.datos[0].num_Rango_MA,json.datos[0].num_Rango_I, 'Estudiantes por Docente año:'+json.datos[0].Anho, '');
-          gaugesGraph(json.datos[json.count-1].razonanual,'divper2','g','y','r',json.datos[json.count-1].num_Rango_MA,json.datos[json.count-1].num_Rango_I, 'Estudiantes por Docente año: '+ json.datos[json.count-1].Anho, '');            
+        else{
+          var now = new Date();
+          $("#departamento").html(json.datos[0].departamento);
+          $("#lblper").html("<br> Indicador Estudiantes por Docente Tiempo Completo años: "+json.datos[0].Anho+" a "+json.datos[json.count-1].Anho);
+          $("#graph3").change(function () {
+            if($(this).val() === '1'){
+              columnTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre\n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],0,0,"A","B");
+            }
+            else if($(this).val() === '2'){
+              columnTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre\n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],40,30,"A","B");
+            }
+            else if($(this).val() === '3'){
+              lineTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre\n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],"A","B");
+            }
+            else if($(this).val() === '4'){
+              barTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre\n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],0,0,"A","B");
+            }
+            else if($(this).val() === '5'){
+              barTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre\n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],40,30,"A","B");
+            }
+          });
+          columnTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre\n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],0,0,"A","B");
+        
+          lineTwoGraph(json.datos,'divgraph4','Número de estudiantes por Docente\n por Semestre\n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],"A","B");
+          //semaforo divper2 y divper1     
+          if(json.datos[json.count-1].sim_Rango_MA == '> ' && json.datos[json.count-1].sim_Rango_I == '< '){
+            gaugesGraph(json.datos[0].razonanual,'divper1','r','y','g',json.datos[0].num_Rango_I,json.datos[0].num_Rango_MA, 'Estudiantes por Docente año:'+json.datos[0].Anho+'\n'+json.datos[0].departamento, '');
+            gaugesGraph(json.datos[json.count-1].razonanual,'divper2','r','y','g',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por Docente año: '+ json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, '');            
           
-        }
+          
+          }      
+          else if(json.datos[json.count-1].sim_Rango_MA === '= ' && json.datos[json.count-1].sim_Rango_A == '< ' && json.datos[json.count-1].sim_Rango_A == '> ' ){    
+            gaugesGraph(json.datos[0].razonanual,'divper1','r','g','y',json.datos[0].num_Rango_I,json.datos[0].num_Rango_MA, 'Estudiantes por Docente año:'+json.datos[0].Anho+'\n'+json.datos[0].departamento, '');
+            gaugesGraph(json.datos[json.count-1].razonanual,'divper2','r','g','y',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por Docente año: '+ json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, '');                        
+          
+          }     
+
+          else if(json.datos[json.count-1].sim_Rango_MA === '= ' && json.datos[json.count-1].sim_Rango_A == '< ' && json.datos[json.count-1].sim_Rango_A == '< ' ){
+            //alert('los simbolos para los rangos Adecuado e inadecuado no pueden ser el simbolo menor(<). por ende la grafica del estado del indicador (velocimetro) no se mostrara');
+            $("#messageError").html("los simbolos para los rangos Adecuado e inadecuado no pueden ser el simbolo menor(<).");
+            $('#myModal').modal('show');
+          
+          }
+          else {                      
+            gaugesGraph(json.datos[0].razonanual,'divper1','g','y','r',json.datos[0].num_Rango_MA,json.datos[0].num_Rango_I, 'Estudiantes por Docente año:'+json.datos[0].Anho+'\n'+json.datos[0].departamento, '');
+            gaugesGraph(json.datos[json.count-1].razonanual,'divper2','g','y','r',json.datos[json.count-1].num_Rango_MA,json.datos[json.count-1].num_Rango_I, 'Estudiantes por Docente año: '+ json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, '');            
+          
+          }
       
-        //gaugesGraph(json.datos[0].razonanual,'divper1','g','y','r',35,59, 'Estudiantes por Docente año: '+json.datos[0].Anho, '');
-        //gaugesGraph(json.datos[json.count-1].razonanual,'divper2','g','y','r',35,59, 'Estudiantes por Docente año: '+json.datos[json.count-1].Anho, '');
+          //gaugesGraph(json.datos[0].razonanual,'divper1','g','y','r',35,59, 'Estudiantes por Docente año: '+json.datos[0].Anho, '');
+          //gaugesGraph(json.datos[json.count-1].razonanual,'divper2','g','y','r',35,59, 'Estudiantes por Docente año: '+json.datos[json.count-1].Anho, '');
+        }
       }
     });
   }
   closedivfilter();
-}*/
+}
 
 function Load_filter_year(){
   $("#lst_anho").html('');
