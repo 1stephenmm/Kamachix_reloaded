@@ -55,7 +55,7 @@ router.post('/', function(req, res, next) {
         //objeto que va acontener la estructura del json a retornar
         var re={
           "datos":[],
-          "fieldsthree":[result.fields[0].name,result.fields[1].name,result.fields[2].name,result.fields[4].name],
+          "fieldsthree":[result.fields[0].name,result.fields[1].name,result.fields[2].name,result.fields[3].name,result.fields[4].name],
           "count":result.rowCount
         };
 

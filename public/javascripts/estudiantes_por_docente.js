@@ -224,12 +224,12 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
             $("#tableres").append('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Meta de Estudiantes por Docente Tiempo Completo alcanzada ('+json.rows[i].razonanual+' de '+parseInt(json.rows[i].num_Rango_MA)+')"></td>');
           }
           else if(json.rows[i].sim_Rango_A === '> '){
-            if(json.rows[i].razonanual > json.rows[i].num_Rango_A){
-              $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo Completo se ha alejado ('+json.rows[i].razonanual+' de '+parseInt(json.rows[i].num_Rango_MA)+')"></td>');
+            if(json.rows[i].razonanual > json.rows[i].num_Rango_I){
+              $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada ('+json.rows[i].razonanual+' de '+parseInt(json.rows[i].num_Rango_MA)+')"></td>');
               
             }
             else{
-              $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada ('+json.rows[i].razonanual+' de '+parseInt(json.rows[i].num_Rango_MA)+')"></td>');
+              $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo Completo se ha alejado ('+json.rows[i].razonanual+' de '+parseInt(json.rows[i].num_Rango_MA)+')"></td>');
 
             }
 
@@ -303,12 +303,12 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
           
         if(json.rows[json.rowCount-1].sim_Rango_MA == '> ' && json.rows[json.rowCount-1].sim_Rango_I == '< '){
           
-          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','y','g',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente', ' estudiantes');
+          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','y','g',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente\nUDENAR', ' estudiantes');
           
         }        
         else if(json.rows[json.rowCount-1].sim_Rango_MA === '= ' && json.rows[json.rowCount-1].sim_Rango_A == '< ' && json.rows[json.rowCount-1].sim_Rango_A == '> ' ){    
                       
-          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','g','y',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente', ' estudiantes');
+          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','g','y',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente\nUDENAR', ' estudiantes');
           
         }        
 
@@ -321,7 +321,7 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
         }
         else {  
                       
-          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','g','y','r',json.rows[json.rowCount-1].num_Rango_MA,json.rows[json.rowCount-1].num_Rango_I,'Estudiantes por Docente', ' estudiantes');
+          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','g','y','r',json.rows[json.rowCount-1].num_Rango_MA,json.rows[json.rowCount-1].num_Rango_I,'Estudiantes por Docente\nUDENAR', ' estudiantes');
           
         }
 
@@ -332,14 +332,14 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
           
         if(json.rows[json.rowCount-1].sim_Rango_MA == '> ' && json.rows[json.rowCount-1].sim_Rango_I == '< '){
           
-          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','y','g',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente', ' estudiantes');
+          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','y','g',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente\nUDENAR', ' estudiantes');
           
         }   
 
         
         else if(json.rows[json.rowCount-1].sim_Rango_MA === '= ' && json.rows[json.rowCount-1].sim_Rango_A == '< ' && json.rows[json.rowCount-1].sim_Rango_A == '> ' ){    
                       
-          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','g','y',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA,'Estudiantes por Docente', ' estudiantes');
+          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','g','y',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA,'Estudiantes por Docente\nUDENAR', ' estudiantes');
           
         }
         
@@ -352,7 +352,7 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
           
         }
         else {                         
-          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','g','y','r',json.rows[json.rowCount-1].num_Rango_MA,json.rows[json.rowCount-1].num_Rango_I, 'Estudiantes por Docente', ' estudiantes');
+          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','g','y','r',json.rows[json.rowCount-1].num_Rango_MA,json.rows[json.rowCount-1].num_Rango_I, 'Estudiantes por Docente\nUDENAR', ' estudiantes');
           
         }
         
@@ -534,7 +534,157 @@ function Load_Filter(){//valida y carga filtro de años a consulta KPI
         else{
           var now = new Date();
           $("#departamento").html(json.datos[0].departamento);
+          
+          $("#graph1").change(function () {
+            if($(this).val() === '1'){
+              columnGraph(json.datos,'divgraph2','Número de Estudiantes por Docente \n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[3],0,0);
+            }
+            else if($(this).val() === '2'){
+              columnGraph(json.datos,'divgraph2','Número de Estudiantes por Docente \n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[3],40,30);
+            }
+            else if($(this).val() === '3'){
+              lineGraph(json.datos,'divgraph2','Número de Estudiantes por Docente \n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[3]);
+            }
+            else if($(this).val() === '4'){
+              areaGraph(json.datos,'divgraph2','Número de Estudiantes por Docente \n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[3]);
+            }
+            else if($(this).val() === '5'){
+              barGraph(json.datos,'divgraph2','Número de Estudiantes por Docente \n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[3],0,0);
+            }
+            else if($(this).val() === '6'){
+              barGraph(json.datos,'divgraph2','Número de Estudiantes por Docente \n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[3],40,30);
+            }
+          });
+          columnGraph(json.datos,'divgraph2','Número de Estudiantes por Docente \n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[3],0,0);
+          
+          $("#tableres").html('');
+          for (var i = json.count-1; i >=0; i--){
+            $("#tableres").append('<tr>');
+            $("#tableres").append('<td>'+json.datos[i].Anho+'</td>');
+            $("#tableres").append('<td>'+json.datos[i].razonanual+'</td>');
+            //--Verificación y muestra de etiquetas de estado de los KPI's en función de la meta a lo largo de los años---------------------------------------------------------------------------------------------------------------
+            // condiciones para insertar el estado rojo verde o amarillo segun el estado de meta y segun los rangos establecidos en los manuales
+            //en caso de que el simbolo del rango adecuado sea '= '
+            if(json.datos[i].sim_Rango_A === '= '){
+              if(json.datos[i].razonanual == json.datos[i].num_Rango_A){
+                $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo Completo se ha alejado ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+              }
+              else if(json.datos[i].sim_Rango_MA === '> '){
+                if(json.datos[i].razonanual > json.datos[i].num_Rango_MA){                
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Meta de Estudiantes por Docente Tiempo Completo alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+                else{                
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+              }
+              else if(json.datos[i].sim_Rango_MA === '< '){
+                if(json.datos[i].razonanual < json.datos[i].num_Rango_MA){
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Meta de Estudiantes por Docente Tiempo Completo alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+                else{
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+              }
+            }
+            //en caso de que el simbolo del rango muy adecuado sea el simbolo de mayor '>'
+            else if(json.datos[i].sim_Rango_MA === '> '){ 
+              if(json.datos[i].razonanual >= json.datos[i].num_Rango_MA){
+                $("#tableres").append('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Meta de Estudiantes por Docente Tiempo Completo alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+              }
+              else if(json.datos[i].sim_Rango_A === '> '){
+                if(json.datos[i].razonanual >= json.datos[i].num_Rango_A){
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo Completo se ha alejado ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+                else{                
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                } 
+              }
+              else if(json.datos[i].sim_Rango_A === '< ' && json.datos[i].sim_Rango_I === '< ' ){
+                if(json.datos[i].razonanual <= json.datos[i].num_Rango_A && json.datos[i].razonanual > json.datos[i].num_Rango_I){
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo Completo se ha alejado ('+json.datos[j].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+                else if(json.datos[i].razonanual <= json.datos[i].num_Rango_I){
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+              }       
+            }
+            //en caso de que el simbolo del rango muy adecuado sea el simbolo de menor '<' 
+            else if(json.datos[i].sim_Rango_MA === '< '){
+              if(json.datos[i].razonanual <= json.datos[i].num_Rango_MA){
+                $("#tableres").append('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Meta de Estudiantes por Docente Tiempo Completo Alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+              }
+              else if(json.datos[i].sim_Rango_A === '> '){
+                if(json.datos[i].razonanual > json.datos[i].num_Rango_A && json.datos[i].razonanual <= json.datos[i].num_Rango_I ){
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo Completo está bajando ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+                else{
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }              
+              }
+              else if(json.datos[i].sim_Rango_A === '< '){
+                if(json.datos[i].sim_Rango_I === '> '){
+                  if(json.datos[i].razonanual <= json.datos[i].num_Rango_A && json.datos[i].razonanual > json.datos[i].num_Rango_MA){
+                    $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo Completo está bajando ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                  }
+                  else {
+                    $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                  }
+                }
+              }
+            }
+            //en caso de que el simbolo del rango muy adecuado sea '= '
+            if(json.datos[i].sim_Rango_MA === '= '){
+              if(json.datos[i].razonanual == json.datos[i].num_Rango_MA){
+                $("#tableres").append('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Meta de Estudiantes por Docente Tiempo Completo alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+              }
+              else if(json.datos[i].sim_Rango_A === '> '){
+                if(json.datos[i].razonanual > json.datos[i].num_Rango_I){
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+                else{
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo Completo se ha alejado ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+              }
+              else if(json.datos[i].sim_Rango_A === '< '){
+                if(json.datos[i].sim_Rango_I === '< '){
+                  if(json.datos[i].razonanual <= json.datos[i].num_Rango_A && json.datos[i].razonanual > json.datos[i].num_Rango_I){
+                    $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo Completo se ha alejado ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                  }
+                  else{
+                    $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                  }
+                }
+                if(json.datos[i].sim_Rango_I === '> '){
+                  if(json.datos[i].razonanual <= json.datos[i].num_Rango_A ){
+                    $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo Completo se ha alejado ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                  }
+                  else{
+                    $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo no alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                  }
+                }
+              }
+            }
+          //-----------------------------------------------------------------
+            $("#tableres").append('</tr>');
+          }
+
+          if(json.datos[json.count-1].sim_Rango_MA == '> ' && json.datos[json.count-1].sim_Rango_I == '< '){
+            gaugesGraph(json.datos[json.count-1].razonanual,'divgraph3','r','y','g',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por Docente año:'+json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, ' estudiantes');
+          }   
+          else if(json.datos[json.count-1].sim_Rango_MA === '= ' && json.datos[json.count-1].sim_Rango_A == '< ' && json.datos[json.count-1].sim_Rango_A == '> ' ){    
+            gaugesGraph(json.datos[json.count-1].razonanual,'divgraph3','r','g','y',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA,'Estudiantes por Docente año:'+json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, ' estudiantes');
+          }
+          else if(json.datos[json.count-1].sim_Rango_MA === '= ' && json.datos[json.count-1].sim_Rango_A == '< ' && json.datos[json.count-1].sim_Rango_A == '< ' ){
+            //alert('los simbolos para los rangos Adecuado e inadecuado no pueden ser el simbolo menor(<). por ende la grafica del estado del indicador (velocimetro) no se mostrara');
+            $("#messageError").html("los simbolos para los rangos Adecuado e inadecuado no pueden ser el simbolo menor(<).");
+            $('#myModal').modal('show');
+          }
+          else {                         
+            gaugesGraph(json.datos[json.count-1].razonanual,'divgraph3','g','y','r',json.datos[json.count-1].num_Rango_MA,json.datos[json.count-1].num_Rango_I, 'Estudiantes por Docente año:'+json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, ' estudiantes');
+          }
+
           $("#lblper").html("<br> Indicador Estudiantes por Docente Tiempo Completo años: "+json.datos[0].Anho+" a "+json.datos[json.count-1].Anho);
+          
           $("#graph3").change(function () {
             if($(this).val() === '1'){
               columnTwoGraph(json.datos,'divgraph1','Número de estudiantes por Docente\n por Semestre\n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],0,0,"A","B");
