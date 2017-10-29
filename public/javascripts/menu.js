@@ -250,7 +250,7 @@ function getPDF(){
     }
    };
 
-   jsreport.headers['Authorization'] = "Basic " + btoa("admin:password");
+   /*jsreport.headers['Authorization'] = "Basic " + btoa("admin:password");
 
    jsreport.renderAsync(request).then(function(res) {
      console.log(res);
@@ -260,17 +260,13 @@ function getPDF(){
 
      //open download dialog
      //res.download('test.pdf')
-   });
-  //  var isOpera = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
-   //
-  //  if(!isOpera){
-  //   //  alert('hola')
-  //    jsreport.render('_blank', request);
-   //
-  //  }else{
-  //    jsreport.download('myReport.pdf', request);
-  //  }
-
+   });*/
+    var isOpera = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
+    if(!isOpera){
+      jsreport.render('_blank', request);
+    }else{
+      jsreport.download('myReport.pdf', request);
+    }
 }
 
 //funcion para sacar el svg y convertirlo en imagen
