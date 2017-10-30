@@ -13,9 +13,9 @@ var pool = configdb.configdb();
 router.post('/', function(req, res, next) {
     //arreglo que contine filtros
     var filters = [req.body.department];
-    if (filters=='UD') var sql ='SELECT spctt."Anho", spctt."razona", spctt."razonb", spctt.razonanual, "sim_Rango_MA","num_Rango_MA","sim_Rango_A","num_Rango_A","sim_Rango_I","num_Rango_I" FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" spctt JOIN manuales_indicadores on "manual_Estu_Docente"=codigo WHERE ';
+    if (filters=='UD') var sql ='SELECT spctt."Anho", spctt."razona", spctt."razonb", spctt.razonanual, spctt.departamento, "sim_Rango_MA","num_Rango_MA","sim_Rango_A","num_Rango_A","sim_Rango_I","num_Rango_I" FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" spctt JOIN manuales_indicadores on "manual_Estu_Docente"=codigo WHERE ';
     //consulta basica sin condiciones
-    else var sql ='SELECT spctt."Anho", spctt."razona", spctt."razonb", spctt.razonanual, u.name, "sim_Rango_MA","num_Rango_MA","sim_Rango_A","num_Rango_A","sim_Rango_I","num_Rango_I" FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" spctt JOIN manuales_indicadores on "manual_Estu_Docente"=codigo JOIN users u ON spctt.departamento=u.codigo WHERE ';
+    else var sql ='SELECT spctt."Anho", spctt."razona", spctt."razonb", spctt.razonanual, u.name, spctt.departamento, "sim_Rango_MA","num_Rango_MA","sim_Rango_A","num_Rango_A","sim_Rango_I","num_Rango_I" FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" spctt JOIN manuales_indicadores on "manual_Estu_Docente"=codigo JOIN users u ON spctt.departamento=u.codigo WHERE ';
     sql=sql+'spctt.departamento LIKE $1';
     //concatena al sql los valores d elos filtros
     if(req.body.yearfrom!=0){
@@ -63,7 +63,23 @@ router.post('/', function(req, res, next) {
         //estos seran los datos de cada objeto o programa devuelto
         var datarray=[];
         for (var i = 0; i < result.rowCount; i++) {
-          var d ={
+          if (result.rows[i].departamento=='UD') 
+            var d ={
+              "razona": result.rows[i].razona,
+              "razonb": result.rows[i].razonb,
+              "Anho": result.rows[i].Anho,
+              "razonanual": result.rows[i].razonanual,
+              "departamento": 'UDENAR',
+              "num_Rango_I":result.rows[i].num_Rango_I,
+              "num_Rango_A":result.rows[i].num_Rango_A,
+              "num_Rango_MA":result.rows[i].num_Rango_MA,
+              "sim_Rango_I":result.rows[i].sim_Rango_I,
+              "sim_Rango_A":result.rows[i].sim_Rango_A,
+              "sim_Rango_MA":result.rows[i].sim_Rango_MA
+
+            };
+          else 
+            var d ={
               "razona": result.rows[i].razona,
               "razonb": result.rows[i].razonb,
               "Anho": result.rows[i].Anho,
