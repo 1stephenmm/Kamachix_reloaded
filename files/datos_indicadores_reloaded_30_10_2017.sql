@@ -1,14 +1,14 @@
 ﻿-- SQL Manager for PostgreSQL 5.7.0.46919
 -- ---------------------------------------
 -- Host      : localhost
--- Database  : datos_indicadores_reloaded
+-- Database  : datos_indicadores
 -- Version   : PostgreSQL 9.6.5, compiled by Visual C++ build 1800, 64-bit
 
 
 
 CREATE SCHEMA "Datawarehouse" AUTHORIZATION postgres;
 --
--- Definition for function fun_actua_formacion (OID = 18211) : 
+-- Definition for function fun_actua_formacion (OID = 19400) : 
 --
 SET search_path = "Datawarehouse", pg_catalog;
 SET check_function_bodies = false;
@@ -30,7 +30,7 @@ BEGIN
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function fun_actua_relacion (OID = 18212) : 
+-- Definition for function fun_actua_relacion (OID = 19401) : 
 --
 CREATE FUNCTION "Datawarehouse".fun_actua_relacion (
 )
@@ -53,7 +53,7 @@ BEGIN
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function fun_delete_cohort (OID = 18213) : 
+-- Definition for function fun_delete_cohort (OID = 19402) : 
 --
 CREATE FUNCTION "Datawarehouse".fun_delete_cohort (
 )
@@ -72,7 +72,7 @@ END;
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function fun_delete_period (OID = 18214) : 
+-- Definition for function fun_delete_period (OID = 19403) : 
 --
 CREATE FUNCTION "Datawarehouse".fun_delete_period (
 )
@@ -91,9 +91,28 @@ END;
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function Actua_Formacion_Dep (OID = 18215) : 
+-- Definition for function Actua_Estudiantes_Dep (OID = 19404) : 
 --
 SET search_path = public, pg_catalog;
+CREATE FUNCTION public."Actua_Estudiantes_Dep" (
+)
+RETURNS trigger
+AS 
+$body$
+DECLARE
+  cantidad_e INTEGER;
+BEGIN
+  SELECT Count(*) INTO cantidad_e FROM estudiantes_departamento ek WHERE ek.departamento = new.departamento and ek.anho=NEW.anho and ek.periodo=new.periodo;
+	IF cantidad_e > 0 THEN
+    	DELETE  FROM estudiantes_departamento ek WHERE ek.departamento = new.departamento and ek.anho=NEW.anho and ek.periodo=new.periodo;
+   	END IF;  
+   	return new;
+END;
+$body$
+LANGUAGE plpgsql;
+--
+-- Definition for function Actua_Formacion_Dep (OID = 19405) : 
+--
 CREATE FUNCTION public."Actua_Formacion_Dep" (
 )
 RETURNS trigger
@@ -111,7 +130,143 @@ BEGIN
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function Fun_Actua_KPI_Form (OID = 18216) : 
+-- Definition for function Fun_Actua_KPI_Est_Doc (OID = 19406) : 
+--
+CREATE FUNCTION public."Fun_Actua_KPI_Est_Doc" (
+)
+RETURNS trigger
+AS 
+$body$
+DECLARE
+  cantidad_e INTEGER;
+BEGIN
+	SELECT Count(*) INTO cantidad_e FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" ek WHERE ek."Anho"=NEW.anho AND ek.departamento=NEW.departamento;
+		/*IF NEW.departamento<>'99' THEN*/
+			IF cantidad_e < 1 THEN
+				IF NEW.periodo='1' THEN
+					INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razona,razonanual) 
+						SELECT 
+							t2.departamento, 
+							t1.anho, 
+							t1.ea::numeric(5,0),
+							t2.da::numeric(3,0),
+							t1.ea/t2.da::numeric(3,0),
+							t1.ea/t2.da::numeric(3,0)
+						FROM ( 
+							SELECT anho,matriculados AS ea
+							FROM estudiantes_departamento 
+							WHERE 
+								periodo = NEW.periodo 
+							AND 
+								anho = NEW.anho 
+							AND 
+								departamento = NEW.departamento) t1
+						JOIN ( 
+							SELECT anio,departamento,sum(t_completo) AS da
+							FROM formacion_departamento 
+							WHERE
+								periodo = NEW.periodo 
+							AND 
+								anio=NEW.anho 
+							AND
+								departamento = NEW.departamento 
+							GROUP BY anio,departamento) t2 
+						ON t2.departamento=NEW.departamento
+						ORDER BY t1.anho;
+				ELSE
+					INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razonb,razonanual) 
+						SELECT 
+							t2.departamento,
+							t1.anho, 
+							t1.eb::numeric(5,0),
+							t2.db::numeric(3,0),
+							t1.eb/t2.db::numeric(3,0),
+							t1.eb/t2.db::numeric(3,0)
+						FROM ( 
+							SELECT anho,matriculados AS eb
+							FROM estudiantes_departamento 
+							WHERE 
+								periodo = NEW.periodo 
+							AND 
+								anho = NEW.anho
+							AND 
+								departamento = NEW.departamento) t1
+						JOIN ( 
+							SELECT anio,departamento,sum(t_completo) AS db
+							FROM formacion_departamento 
+							WHERE 
+								periodo = NEW.periodo 
+							AND 
+								anio=NEW.anho 
+							AND 
+								departamento=NEW.departamento 
+							GROUP BY anio,departamento) t2 
+						ON t2.departamento=NEW.departamento
+						ORDER BY t1.anho;
+				END IF;
+			ELSE
+                  IF NEW.periodo='2' THEN
+                      UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+                          SET 
+                              estudiantes=(
+                                  SELECT 
+                                      sum(matriculados)/2::numeric(5,0)
+                                  FROM estudiantes_departamento 
+                                  WHERE 
+                                      anho=NEW.anho
+                                  AND 
+                                      departamento=NEW.departamento),
+                              docentes=(
+                                  SELECT 
+                                      sum(t_completo)/2::numeric(3,0)
+                                  FROM formacion_departamento 
+                                  WHERE 
+                                      anio=NEW.anho
+                                  AND 
+                                      departamento=NEW.departamento)
+                          WHERE 
+                              "Anho"=new.anho
+                          AND
+                              departamento=NEW.departamento;
+                      UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+                          SET 
+                              razonanual=(
+                                  SELECT 
+                                      estudiantes/docentes::numeric(3,0)
+                                  FROM 
+                                      "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
+                                  WHERE
+                                      "Anho"=NEW.anho
+                                  AND 
+                                      departamento=NEW.departamento)
+                          WHERE 
+                              "Anho"=new.anho
+                          AND
+                              departamento=NEW.departamento;
+                      UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+                          SET 
+                              razonb=(
+                                  SELECT 
+                                      (2*razonanual-razona)::numeric(3,0)
+                                  FROM 
+                                      "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
+                                  WHERE
+                                      "Anho"=NEW.anho
+                                  AND 
+                                      departamento=NEW.departamento)
+                          WHERE 
+                              "Anho"=new.anho
+                          AND
+                              departamento=NEW.departamento;
+                  END IF;
+			END IF;
+		/*END IF;*/
+	return NEW;
+END;
+$body$
+LANGUAGE plpgsql;
+--
+-- Definition for function Fun_Actua_KPI_Form (OID = 19407) : 
 --
 CREATE FUNCTION public."Fun_Actua_KPI_Form" (
 )
@@ -138,7 +293,7 @@ BEGIN
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function fun_actua_satisfaccion (OID = 18217) : 
+-- Definition for function fun_actua_satisfaccion (OID = 19408) : 
 --
 CREATE FUNCTION public.fun_actua_satisfaccion (
 )
@@ -157,265 +312,148 @@ END;
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function Actua_Estudiantes_Dep (OID = 18443) : 
+-- Definition for function Fun_Actua_KPI_Est_Doc_UDENAR (OID = 19803) : 
 --
-CREATE FUNCTION public."Actua_Estudiantes_Dep" (
+CREATE FUNCTION public."Fun_Actua_KPI_Est_Doc_UDENAR" (
 )
 RETURNS trigger
 AS 
 $body$
 DECLARE
-  cantidad_e INTEGER;
+  cantidad_eu INTEGER;
 BEGIN
-  SELECT Count(*) INTO cantidad_e FROM estudiantes_departamento ek WHERE ek.departamento = new.departamento and ek.anho=NEW.anho and ek.periodo=new.periodo;
-	IF cantidad_e > 0 THEN
-    	DELETE  FROM estudiantes_departamento ek WHERE ek.departamento = new.departamento and ek.anho=NEW.anho and ek.periodo=new.periodo;
-   	END IF;  
-   	return new;
-END;
-$body$
-LANGUAGE plpgsql;
---
--- Definition for function Fun_Actua_KPI_Est_Dep (OID = 18445) : 
---
-CREATE FUNCTION public."Fun_Actua_KPI_Est_Dep" (
-)
-RETURNS trigger
-AS 
-$body$
-DECLARE
-  cantidad_e INTEGER;
-BEGIN
-	SELECT Count(*) INTO cantidad_e FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" ek WHERE ek."Anho"=NEW.anho;
-    IF cantidad_e < 1 THEN
-    	IF NEW.periodo='1' THEN
-    		INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" ("Anho",estudiantes,docentes,razona,razonanual) 
-				SELECT 
-                	t1.anho, 
-                    t1.ea::numeric(5,0),
-				    t2.da::numeric(3,0),
-				    t1.ea/t2.da::numeric(3,0),
-				    t1.ea/t2.da::numeric(3,0)
-			   	FROM ( 
-                	SELECT anho,sum(matriculados) AS ea
-			        FROM estudiantes_departamento 
-                    WHERE 
-                    	periodo = NEW.periodo 
-                    AND 
-                    	anho = NEW.anho 
-                    GROUP by anho) t1
-				JOIN ( 
-                	SELECT anio,sum(t_completo) AS da
-                    FROM formacion_departamento 
-           			WHERE periodo = NEW.periodo 
-           			AND anio=NEW.anho 
-           			GROUP BY anio) t2 
-                ON t2.anio=NEW.anho;
+	SELECT Count(*) INTO cantidad_eu FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" ek WHERE ek."Anho"=NEW.anho AND ek.departamento='UD';
+    /*IF NEW.departamento<>'99' THEN*/
+      IF cantidad_eu < 1 THEN
+      	IF NEW.periodo='1' THEN
+          INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razonanual,razona) 
+            SELECT
+            	'UD',
+                t1.anho, 
+                t1.ea::numeric(5,0),
+				t2.da::numeric(3,0),
+				t1.ea/t2.da::numeric(3,0),
+				t1.ea/t2.da::numeric(3,0)
+            FROM ( 
+            	SELECT anho,sum(matriculados) AS ea
+                FROM estudiantes_departamento 
+                WHERE 
+                	periodo=NEW.periodo
+                AND 
+                	anho=NEW.anho
+                GROUP BY anho) t1
+            JOIN ( 
+            	SELECT anio,sum(t_completo) AS da
+                FROM formacion_departamento 
+                WHERE 
+                	periodo=NEW.periodo
+                AND 
+                	anio=NEW.anho
+                GROUP BY anio) t2 
+            ON t2.anio=t1.anho
+            ORDER BY t1.anho;
         ELSE
-    		INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" ("Anho",estudiantes,docentes,razonb,razonanual) 
-				SELECT 
-                	t1.anho, 
-                    t1.eb::numeric(5,0),
-				    t2.db::numeric(3,0),
-				    t1.eb/t2.db::numeric(3,0),
-				    t1.eb/t2.db::numeric(3,0)
-			   	FROM ( 
-                	SELECT anho,sum(matriculados) AS eb
-			        FROM estudiantes_departamento 
-                    WHERE 
-                    	periodo = NEW.periodo 
-                    AND 
-                    	anho = NEW.anho 
-                    GROUP by anho) t1
+			INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razonb,razonanual) 
+				SELECT
+                	'UD',
+					t1.anho, 
+					t1.eb::numeric(5,0),
+					t2.db::numeric(3,0),
+					t1.eb/t2.db::numeric(3,0),
+					t1.eb/t2.db::numeric(3,0)
+				FROM ( 
+					SELECT anho,matriculados AS eb
+					FROM estudiantes_departamento 
+					WHERE 
+						periodo = NEW.periodo 
+					AND 
+						anho = NEW.anho
+                    GROUP BY anho) t1
 				JOIN ( 
-                	SELECT anio,sum(t_completo) AS db
+					SELECT anio,sum(t_completo) AS db
+					FROM formacion_departamento 
+					WHERE 
+						periodo = NEW.periodo 
+					AND 
+						anio=NEW.anho 
+					GROUP BY anio) t2 
+				ON t2.anio=t1.anho
+				ORDER BY t1.anho;
+        END IF;
+      ELSE
+      	IF NEW.periodo='2' THEN
+        	UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+            SET 
+            	estudiantes=(
+                	SELECT 
+                    	sum(matriculados)/2::numeric(5,0)
+                    FROM estudiantes_departamento 
+                    WHERE 
+                    	anho=NEW.anho),
+                docentes=(
+                	SELECT 
+                    	SUM(t_completo)/2::numeric(3,0)
                     FROM formacion_departamento 
-           			WHERE periodo = NEW.periodo 
-           			AND anio=NEW.anho 
-           			GROUP BY anio) t2 
-                ON t2.anio=NEW.anho;
-        END IF;
-    ELSE
-    	IF NEW.periodo='2' THEN
-          UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-              SET 
-                  estudiantes=(
-                      SELECT 
-                          sum(matriculados)/2::numeric(5,0)
-                      FROM estudiantes_departamento 
-                      WHERE anho=NEW.anho),
-                  docentes=(
-                      SELECT 
-                          sum(t_completo)/2::numeric(3,0)
-                      FROM formacion_departamento 
-                      WHERE anio=NEW.anho),
-                  razonb=(
-                      SELECT 
-                        t3.eb/t4.db::numeric(3,0)
-                      FROM ( 
-                          SELECT anho,sum(matriculados) AS eb
-                          FROM estudiantes_departamento 
-                          WHERE 
-                              periodo = NEW.periodo 
-                          AND 
-                              anho = NEW.anho 
-                          GROUP by anho) t3
-                      JOIN ( 
-                          SELECT anio,sum(t_completo) AS db
-                          FROM formacion_departamento 
-                          WHERE periodo = NEW.periodo 
-                          AND anio=NEW.anho 
-                          GROUP BY anio) t4 
-                      ON t4.anio=NEW.anho)
-              WHERE 
-                  "Anho"=new.anho;
-          UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-              SET 
-                  razonanual=(
-                      SELECT 
-                        estudiantes/docentes::numeric(3,0)
-                      FROM 
-                      	"Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
-                      WHERE
-                      	"Anho"=NEW.anho)
-              WHERE 
-                  "Anho"=new.anho;
-        END IF;
-   END IF;
+            		WHERE 
+            			anio=NEW.anho)
+            WHERE 
+            	"Anho"=new.anho
+            AND departamento='UD';
+			UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+            SET 
+            	razonanual=(
+                	SELECT 
+                        t1.e/t2.d::numeric(3,0)
+                    FROM 
+                        (
+                        SELECT 
+                            anho,
+                            sum(matriculados)/2::numeric(5,0) AS e
+                        FROM estudiantes_departamento 
+                        WHERE 
+                            anho=NEW.anho
+                        GROUP BY anho) t1
+                    JOIN 
+                        (
+                        SELECT 
+                            anio,
+                            sum(t_completo)/2::numeric(5,0) AS d
+                        FROM formacion_departamento 
+                        WHERE 
+                            anio=NEW.anho
+                        GROUP BY anio) t2
+                    ON t1.anho=t2.anio
+                    WHERE
+                        anio=NEW.anho)
+            WHERE 
+            	"Anho"=NEW.anho
+            AND 
+            	departamento='UD';
+            UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+            SET 
+            	razonb=(
+                	SELECT 
+                    	(2*razonanual-razona)::numeric(3,0)
+                    FROM 
+                    	"Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
+                    WHERE
+                    	"Anho"=NEW.anho
+                    AND 
+                    	departamento='UD')
+        	WHERE 
+            	"Anho"=new.anho
+            AND
+                departamento='UD';
+      	END IF;
+            
+      END IF;       
+   /*END IF;*/
    return NEW;
  END;
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function Fun_Actua_KPI_Est_Doc (OID = 18447) : 
---
-CREATE FUNCTION public."Fun_Actua_KPI_Est_Doc" (
-)
-RETURNS trigger
-AS 
-$body$
-DECLARE
-  cantidad_e INTEGER;
-BEGIN
-	SELECT Count(*) INTO cantidad_e FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" ek WHERE ek."Anho"=NEW.anho AND ek.departamento=NEW.departamento;
-	IF NEW.departamento<>'99' THEN
-    	IF cantidad_e < 1 THEN
-	    	IF NEW.periodo='1' THEN
-				INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razona,razonanual) 
-					SELECT 
-						t2.departamento, 
-						t1.anho, 
-						t1.ea::numeric(5,0),
-						t2.da::numeric(3,0),
-						t1.ea/t2.da::numeric(3,0),
-						t1.ea/t2.da::numeric(3,0)
-					FROM ( 
-						SELECT anho,matriculados AS ea
-						FROM estudiantes_departamento 
-						WHERE 
-							periodo = NEW.periodo 
-						AND 
-							anho = NEW.anho 
-						AND 
-							departamento = NEW.departamento) t1
-					JOIN ( 
-						SELECT anio,departamento,sum(t_completo) AS da
-						FROM formacion_departamento 
-						WHERE
-							periodo = NEW.periodo 
-						AND 
-							anio=NEW.anho 
-						AND
-							departamento = NEW.departamento 
-						GROUP BY anio,departamento) t2 
-					ON t2.departamento=NEW.departamento;
-            ELSE
-				INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razonb,razonanual) 
-					SELECT 
-						t2.departamento,
-						t1.anho, 
-						t1.eb::numeric(5,0),
-						t2.db::numeric(3,0),
-						t1.eb/t2.db::numeric(3,0),
-						t1.eb/t2.db::numeric(3,0)
-					FROM ( 
-						SELECT anho,matriculados AS eb
-						FROM estudiantes_departamento 
-						WHERE 
-							periodo = NEW.periodo 
-						AND 
-							anho = NEW.anho
-						AND 
-							departamento = NEW.departamento) t1
-					JOIN ( 
-						SELECT anio,departamento,sum(t_completo) AS db
-						FROM formacion_departamento 
-						WHERE 
-							periodo = NEW.periodo 
-						AND 
-							anio=NEW.anho 
-						AND 
-							departamento=NEW.departamento 
-						GROUP BY anio,departamento) t2 
-					ON t2.departamento=NEW.departamento;
-            END IF;
-        ELSE
-			IF NEW.periodo='2' THEN
-				UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-					SET 
-						estudiantes=(
-							SELECT 
-								sum(matriculados)/2::numeric(5,0)
-							FROM estudiantes_departamento 
-							WHERE 
-								anho=NEW.anho
-							AND 
-								departamento=NEW.departamento),
-						docentes=(
-							SELECT 
-								sum(t_completo)/2::numeric(3,0)
-							FROM formacion_departamento 
-							WHERE 
-								anio=NEW.anho
-							AND 
-								departamento=NEW.departamento),
-						razonb=(
-							SELECT 
-								(2*(estudiantes/docentes)-razona)
-							FROM 
-								"Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
-							WHERE
-								"Anho"=NEW.anho
-							AND 
-								departamento=NEW.departamento)
-					WHERE 
-						"Anho"=new.anho
-					AND
-						departamento=NEW.departamento;
-				UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-					SET 
-						razonanual=(
-							SELECT 
-								estudiantes/docentes::numeric(3,0)
-							FROM 
-								"Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
-							WHERE
-								"Anho"=NEW.anho
-							AND 
-								departamento=NEW.departamento)
-					WHERE 
-						"Anho"=new.anho
-					AND
-						departamento=NEW.departamento;
-			END IF;
-    	END IF;
-	END IF;
-	return NEW;
-END;
-$body$
-LANGUAGE plpgsql;
---
--- Structure for table KPI_Acreditacion (OID = 18218) : 
+-- Structure for table KPI_Acreditacion (OID = 19409) : 
 --
 SET search_path = "Datawarehouse", pg_catalog;
 CREATE TABLE "Datawarehouse"."KPI_Acreditacion" (
@@ -427,7 +465,7 @@ CREATE TABLE "Datawarehouse"."KPI_Acreditacion" (
 )
 WITH (oids = false);
 --
--- Structure for table KPI_Desercion_Cohorte (OID = 18222) : 
+-- Structure for table KPI_Desercion_Cohorte (OID = 19413) : 
 --
 CREATE TABLE "Datawarehouse"."KPI_Desercion_Cohorte" (
     programa varchar(6) NOT NULL,
@@ -437,7 +475,7 @@ CREATE TABLE "Datawarehouse"."KPI_Desercion_Cohorte" (
 )
 WITH (oids = false);
 --
--- Structure for table KPI_Desercion_Periodo (OID = 18226) : 
+-- Structure for table KPI_Desercion_Periodo (OID = 19417) : 
 --
 CREATE TABLE "Datawarehouse"."KPI_Desercion_Periodo" (
     programa varchar(6) NOT NULL,
@@ -450,7 +488,21 @@ CREATE TABLE "Datawarehouse"."KPI_Desercion_Periodo" (
 )
 WITH (oids = false);
 --
--- Structure for table KPI_Formacion (OID = 18235) : 
+-- Structure for table KPI_Estudiantes_por_Docentes_TC (OID = 19421) : 
+--
+CREATE TABLE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (
+    departamento char(2) NOT NULL,
+    "Anho" char(4) NOT NULL,
+    estudiantes numeric(5,0) NOT NULL,
+    docentes numeric(3,0) NOT NULL,
+    razonanual numeric(3,0) NOT NULL,
+    razona numeric(3,0) NOT NULL,
+    razonb numeric(3,0) DEFAULT 0,
+    "manual_Estu_Docente" char(3) DEFAULT 5
+)
+WITH (oids = false);
+--
+-- Structure for table KPI_Formacion (OID = 19426) : 
 --
 CREATE TABLE "Datawarehouse"."KPI_Formacion" (
     formacion char(2),
@@ -463,7 +515,7 @@ CREATE TABLE "Datawarehouse"."KPI_Formacion" (
 )
 WITH (oids = false);
 --
--- Structure for table KPI_Nivel_Satisfaccion (OID = 18239) : 
+-- Structure for table KPI_Nivel_Satisfaccion (OID = 19430) : 
 --
 CREATE TABLE "Datawarehouse"."KPI_Nivel_Satisfaccion" (
     "Programa" varchar(6) NOT NULL,
@@ -473,7 +525,7 @@ CREATE TABLE "Datawarehouse"."KPI_Nivel_Satisfaccion" (
 )
 WITH (oids = false);
 --
--- Structure for table KPI_Relacion_Docentes (OID = 18243) : 
+-- Structure for table KPI_Relacion_Docentes (OID = 19434) : 
 --
 CREATE TABLE "Datawarehouse"."KPI_Relacion_Docentes" (
     anio char(5) NOT NULL,
@@ -484,7 +536,7 @@ CREATE TABLE "Datawarehouse"."KPI_Relacion_Docentes" (
 )
 WITH (oids = false);
 --
--- Structure for table acreditacion_alta_calidad (OID = 18247) : 
+-- Structure for table acreditacion_alta_calidad (OID = 19438) : 
 --
 SET search_path = public, pg_catalog;
 CREATE TABLE public.acreditacion_alta_calidad (
@@ -509,7 +561,18 @@ CREATE TABLE public.acreditacion_alta_calidad (
 )
 WITH (oids = false);
 --
--- Structure for table formacion (OID = 18268) : 
+-- Structure for table estudiantes_departamento (OID = 19459) : 
+--
+CREATE TABLE public.estudiantes_departamento (
+    cod_est_dep serial NOT NULL,
+    departamento char(2),
+    matriculados integer,
+    anho char(4),
+    periodo char(1)
+)
+WITH (oids = false);
+--
+-- Structure for table formacion (OID = 19464) : 
 --
 CREATE TABLE public.formacion (
     cod_formacion char(2) NOT NULL,
@@ -517,7 +580,7 @@ CREATE TABLE public.formacion (
 )
 WITH (oids = false);
 --
--- Structure for table formacion_departamento (OID = 18271) : 
+-- Structure for table formacion_departamento (OID = 19467) : 
 --
 CREATE TABLE public.formacion_departamento (
     cod_forma_dep serial NOT NULL,
@@ -531,7 +594,7 @@ CREATE TABLE public.formacion_departamento (
 )
 WITH (oids = false);
 --
--- Structure for table manuales_indicadores (OID = 18276) : 
+-- Structure for table manuales_indicadores (OID = 19472) : 
 --
 CREATE TABLE public.manuales_indicadores (
     codigo char(3) NOT NULL,
@@ -562,17 +625,7 @@ CREATE TABLE public.manuales_indicadores (
 )
 WITH (oids = false);
 --
--- Structure for table poblacion_estudiantes (OID = 18282) : 
---
-CREATE TABLE public.poblacion_estudiantes (
-    anho char(4) NOT NULL,
-    "semestreA" integer NOT NULL,
-    "semestreB" integer DEFAULT 0,
-    promedio numeric(5,0)
-)
-WITH (oids = false);
---
--- Structure for table programas (OID = 18286) : 
+-- Structure for table programas (OID = 19478) : 
 --
 CREATE TABLE public.programas (
     snies varchar(6) NOT NULL,
@@ -586,7 +639,7 @@ CREATE TABLE public.programas (
 )
 WITH (oids = false);
 --
--- Structure for table users (OID = 18291) : 
+-- Structure for table users (OID = 19483) : 
 --
 CREATE TABLE public.users (
     codigo char(2) NOT NULL,
@@ -597,58 +650,6 @@ CREATE TABLE public.users (
     encriptado varchar(200),
     email varchar NOT NULL,
     alternative_email varchar
-)
-WITH (oids = false);
---
--- Definition for view vista_poblacion_docentes (OID = 18298) : 
---
-CREATE VIEW public.vista_poblacion_docentes
-AS
-SELECT t1.anio AS anho,
-    t1.a AS "semestreA",
-    t2.b AS "semestreB",
-    (((t1.a + t2.b) / 2))::numeric AS promedio
-FROM ((
-    SELECT formacion_departamento.anio,
-            sum(formacion_departamento.t_completo) AS a
-    FROM formacion_departamento
-    WHERE (formacion_departamento.periodo = '1'::bpchar)
-    GROUP BY formacion_departamento.anio
-    ) t1
-     FULL JOIN (
-    SELECT formacion_departamento.anio,
-            sum(formacion_departamento.t_completo) AS b
-    FROM formacion_departamento
-    WHERE (formacion_departamento.periodo = '2'::bpchar)
-    GROUP BY formacion_departamento.anio
-    ) t2 ON (((t1.anio)::text = (t2.anio)::text)))
-ORDER BY t1.anio;
-
---
--- Structure for table KPI_Estudiantes_por_Docentes_TC (OID = 18414) : 
---
-SET search_path = "Datawarehouse", pg_catalog;
-CREATE TABLE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (
-    departamento char(2),
-    "Anho" char(4) NOT NULL,
-    estudiantes numeric(5,0) NOT NULL,
-    docentes numeric(3,0) NOT NULL,
-    razonanual numeric(3,0) NOT NULL,
-    razona numeric(3,0) DEFAULT 0 NOT NULL,
-    razonb numeric(3,0) DEFAULT 0,
-    "manual_Estu_Docente" char(3) DEFAULT 5
-)
-WITH (oids = false);
---
--- Structure for table estudiantes_departamento (OID = 18432) : 
---
-SET search_path = public, pg_catalog;
-CREATE TABLE public.estudiantes_departamento (
-    cod_est_dep serial NOT NULL,
-    departamento char(2),
-    matriculados integer,
-    anho char(4),
-    periodo char(1)
 )
 WITH (oids = false);
 SET search_path = "Datawarehouse", pg_catalog;
@@ -1766,6 +1767,8 @@ COPY "KPI_Desercion_Periodo" (programa, periodo, no_graduados, desertores, deser
 1206	2016-1	0	693	7.78	92.22	7  
 1206	2016-2	0	720	7.89	92.11	7  
 \.
+COPY "KPI_Estudiantes_por_Docentes_TC" (departamento, "Anho", estudiantes, docentes, razonanual, razona, razonb, "manual_Estu_Docente") FROM stdin;
+\.
 COPY "KPI_Formacion" (formacion, t_completo, t_ocasional, hora_catedra, anio, "manual_Formacion", estado_meta) FROM stdin;
 1 	47	1	0	2010	2  	71.59
 2 	147	18	37	2010	2  	71.59
@@ -2008,6 +2011,8 @@ COPY acreditacion_alta_calidad (resolucion, programa, inicioacreditacion, period
 13752	783	2015-09-02	4	t	99	0	f	f	t	f	f	f	f	f	f	f	f
 14781	12696	2017-07-28	4	t	99	0	f	f	f	f	f	f	f	f	f	f	f
 9233	6564	2015-06-26	4	t	27	1	t	f	f	f	f	f	f	f	f	f	f
+\.
+COPY estudiantes_departamento (cod_est_dep, departamento, matriculados, anho, periodo) FROM stdin;
 \.
 COPY formacion (cod_formacion, nom_formacion) FROM stdin;
 1 	Doctor
@@ -3946,25 +3951,22 @@ COPY manuales_indicadores (codigo, proceso, lider, "objProceso", "nombreIndicado
 1  	Formación Académca	Vicerrector(a) Académico (a)	Formar integralmente estudiantes a través de los diferentes Programas, niveles y modalidades de Educación Superior.	Nivel de Satisfacción  estudiantil.	Estudiantes del programas que califican la Formación Académica como satisfactoria.	Garantizar la satisfacción de los estudiantes con los servicios prestados de formación académica que ofrece la Universidad de Nariño	Eficacia	Semestral	Mes de marzo para semestre A y mes octubre para semestre B	Mantener (mantener y/o incrementar el nivel de satisfacción estudiantil)	Lograr que el 80% de los estudiantes califiquen la prestación del servicio de formación académica de cada programa académico como satisfactorio.	Medir el nivel de satisfacción que tiene la comunidad estudiantil, en lo que se refiera al servicio educativo impartido por cada uno de los programas académicos de la Universidad de Nariño.	80 – 100 %   Muy Adecuado\r\n70 – 79  % Adecuado\r\n60 – 69  % Inadecuado\r\n< 40 %  Muy inadecuado	(No. de estudiantes que calificaron Excelente, Bueno y Adecuado en la primera pregunta de la encuesta de satisfacción / Total de estudiantes) \n\nCalculo del número de encuestas a  aplicar : Muestra representativa del número de Estudiantes matriculados al periodo académico correspondiente. \n\nPregunta de encuesta: 1. ¿Cómo califica Usted la Formación Académica impartida por el Programa al que pertenece?	Diagrama de Columna, señalando la variación porcentual de cada período.	pagina Web Institucional/indicadoresacademicos	Director de Departamento.	http://indicadoresacademicos.udenar.edu.co/tutorial	> 	80.00	> 	70.00	< 	69.00
 7  	Formación Académica	Vicerrector(a) Académico(a)	Formar integralmente estudiantes a través de los diferentes Programas, niveles y modalidades de Educación Superior.	Deserción Académica por periodo	Nivel de deserción por periodo dentro del servicio educativo de cada programa académico	Mejorar permanentemente la calidad en la docencia, investigación y proyección social de la Universidad.	Eficiencia	Anual	Último mes antes de finalizar el año	Disminución 	Disminución al 8% de la deserción observada por Periodo. 	Medir la capacidad de retención del Proceso “Formación Académica”	< 10% Deserción Muy Adecuado\r\n10 – 15 %  Deserción  Adecuada\r\n>15 % Deserción  Inadecuado	No.  de Estudiantes que se retiran en forma definitiva del Proceso de Formación Académica por Periodo/No. de Estudiantes Matriculados por periodo)*100	Diagrama de Bloque, señalando el porcentaje obtenido de deserción, frente a la meta.	Estadísticas SPADIES  para cada cierre de año	irector de DepartamentoAsesor de Información y Estadística Oficina de Planeación y Desarrollo	Al finalizar cada año se aplica la fórmula y se confronta los resultados del año anterior con los del año actual.	< 	10.00	> 	10.00	> 	10.00
 \.
-COPY poblacion_estudiantes (anho, "semestreA", "semestreB", promedio) FROM stdin;
-2011	10114	10374	10244
-2012	10406	10482	10444
-2013	10446	10470	10458
-2014	10632	10596	10614
-2015	11161	10791	10976
-2016	11308	11413	11360
-2010	8522	8075	8298
-2017	11732	0	11732
-\.
 COPY programas (snies, nivel, codigo, departamento, nombre, abreviatura, "fechaRegistro", estado) FROM stdin;
 2972	1	010	20	Licenciatura en Informática	Lic. Informática	2010	t
 16843	1	027	13	Licenciatura en Educación Básica con Enfasis en Humanidades, Lengua Castellana e Inglés	Lic.Edu.Bas.Enf Human LengCastell-Ingles	2010	t
+102867	1	888	\N	Técnico Profesional en Cultivo de Cafés Especiales	Tec. Cultivo Cafés Especiales	2013	t
+101600	1	111	\N	Tecnología en Gestión de Plantaciones de Cacao	Tecno.Gestión Plantaciones Cacao	2013	t
 105374	2	\N	\N	Doctorado en Ciencias Agrarias	Doctorado Ciencias Agrarias	2016	t
 105084	2	\N	\N	Especialización en Gerencia Integral en Sistemas de Gestión de Calidad	Esp. Gerencia Integral Sist.Gest.Calidad	2015	t
+54420	1	777	\N	Técnica Profesional en Producción de Palma de Aceite	Tec. Producción Palma Aceite	2011	t
 102625	2	\N	\N	Especialización en Construcción de Software	Esp. Construcción Software	2013	t
 53860	2	\N	\N	Especialización en Derecho Comercial	Esp. Derecho Comercial	2015	t
 794	2	\N	\N	Especialización en Derecho Administrativo	Esp. Derecho Administrativo	2015	t
 6565	2	\N	\N	Especialización en Alta Gerencia	Esp. Alta Gerencia	2014	t
+54419	1	222	\N	Tecnología en Gestión de Plantaciones de Palma de Aceite	Tecno.Gestión Plant Palma Aceite	2009	t
+91018	1	999	\N	Técnica Profesional en Operación de Minería Sostenible	Tec. Operación Minería Sostenible	2013	t
+90855	1	444	\N	Técnica Profesional en Guianza Turística	Tec. Guianza Turística	2012	t
+91450	1	666	\N	Técnica Profesional en Producción de Cacao	Tec. Producción Cacao	2012	t
 6566	1	127	30	Ingeniería en Producción Acuícola	Ing. Producción Acuicola	2010	t
 3318	1	129	12	Geografía	Geografía	2010	t
 4492	1	140	21	Química	Quimica	2010	t
@@ -4025,11 +4027,6 @@ COPY programas (snies, nivel, codigo, departamento, nombre, abreviatura, "fechaR
 777	1	071	28	Zootecnia	Zootecnia	2010	t
 20824	1	076	17	Medicina	Medicina	2010	t
 91280	1	089	6	Ingeniería Ambiental	Ing. Ambiental	2011	t
-102867	1	888	99	Técnico Profesional en Cultivo de Cafés Especiales	Tec. Cultivo Cafés Especiales	2013	t
-54419	1	222	99	Tecnología en Gestión de Plantaciones de Palma de Aceite	Tecno.Gestión Plant Palma Aceite	2009	t
-54420	1	777	99	Técnica Profesional en Producción de Palma de Aceite	Tec. Producción Palma Aceite	2011	t
-90855	1	444	99	Técnica Profesional en Guianza Turística	Tec. Guianza Turística	2012	t
-91450	1	666	99	Técnica Profesional en Producción de Cacao	Tec. Producción Cacao	2012	t
 3426	1	095	18	Biología	Biología	2010	t
 796	2	\N	\N	Maestría en Etnoliteratura	Maestría Etnoliteratura	2016	t
 53430	2	\N	\N	Maestría en Educación	Maestría Educación	2015	t
@@ -4063,8 +4060,6 @@ COPY programas (snies, nivel, codigo, departamento, nombre, abreviatura, "fechaR
 16837	1	128	10	Licenciatura en Educación Básica con Énfasis en Ciencias Sociales	Lic. Educ. Bas. Enf. Ciencias Sociales	2000	f
 8405	1	073	16	Tecnología en Promoción de la Salud	Tecnologia Promoción Salud	2010	t
 92400	1	400	17	Auxiliar en Enfermeria	Auxiliar en Enfermeria	2017	t
-101600	1	111	99	Tecnología en Gestión de Plantaciones de Cacao	Tecno.Gestión Plantaciones Cacao	2013	t
-91018	1	999	99	Técnica Profesional en Operación de Minería Sostenible	Tec. Operación Minería Sostenible	2013	t
 \.
 COPY users (codigo, "user", pass, name, rol, encriptado, email, alternative_email) FROM stdin;
 22	dcb201b195282662b8b152c9a5196f39	dcb201b195282662b8b152c9a5196f39	Departamento de Ciencias Jurídicas	0	2aaeafbf04dfc3d307afa06ffa5bf885	derecho@udenar.edu.co	leonardoaem@gmail.com
@@ -4100,186 +4095,162 @@ COPY users (codigo, "user", pass, name, rol, encriptado, email, alternative_emai
 11	8d9cf576c5110bbc3c74a5cc5112a51f	8d9cf576c5110bbc3c74a5cc5112a51f	Departamento de Filosofía	0	7f3b7b26a2a1ea13f2760d64ecf1a1c0	filosofia@udenar.edu.co	manrique@udenar.edu.co
 9 	2a0a0798dd43023ab30bdd4a777f4225	7a43bd1709ef441f1b3b3fa71c1175da	Departamento de Comercio Internacional y Mercadeo	0	c1ba95bb040905d1ea4c25d2fbd9768b	cim@udenar.edu.co	\N
 \.
-SET search_path = "Datawarehouse", pg_catalog;
-COPY "KPI_Estudiantes_por_Docentes_TC" (departamento, "Anho", estudiantes, docentes, razonanual, razona, razonb, "manual_Estu_Docente") FROM stdin;
-\.
-SET search_path = public, pg_catalog;
-COPY estudiantes_departamento (cod_est_dep, departamento, matriculados, anho, periodo) FROM stdin;
-\.
 --
--- Definition for index poblacion_estudiantes_promedio_key (OID = 18326) : 
---
-CREATE UNIQUE INDEX poblacion_estudiantes_promedio_key ON poblacion_estudiantes USING btree (promedio);
---
--- Definition for index KPI_Desercion_Cohorte_idx (OID = 18304) : 
+-- Definition for index KPI_Desercion_Cohorte_idx (OID = 19492) : 
 --
 SET search_path = "Datawarehouse", pg_catalog;
 ALTER TABLE ONLY "KPI_Desercion_Cohorte"
     ADD CONSTRAINT "KPI_Desercion_Cohorte_idx"
     PRIMARY KEY (programa, periodo);
 --
--- Definition for index KPI_Desercion_Periodo_idx (OID = 18306) : 
+-- Definition for index KPI_Desercion_Periodo_idx (OID = 19494) : 
 --
 ALTER TABLE ONLY "KPI_Desercion_Periodo"
     ADD CONSTRAINT "KPI_Desercion_Periodo_idx"
     PRIMARY KEY (programa, periodo);
 --
--- Definition for index KPI_Nivel_Satisfaccion_pkey (OID = 18308) : 
+-- Definition for index KPI_Nivel_Satisfaccion_pkey (OID = 19496) : 
 --
 ALTER TABLE ONLY "KPI_Nivel_Satisfaccion"
     ADD CONSTRAINT "KPI_Nivel_Satisfaccion_pkey"
     PRIMARY KEY ("Programa", "Anho");
 --
--- Definition for index acreditacion_alta_calidad_pkey (OID = 18310) : 
+-- Definition for index acreditacion_alta_calidad_pkey (OID = 19498) : 
 --
 SET search_path = public, pg_catalog;
 ALTER TABLE ONLY acreditacion_alta_calidad
     ADD CONSTRAINT acreditacion_alta_calidad_pkey
     PRIMARY KEY (resolucion);
 --
--- Definition for index formacion_departamento_pkey (OID = 18312) : 
+-- Definition for index formacion_departamento_pkey (OID = 19500) : 
 --
 ALTER TABLE ONLY formacion_departamento
     ADD CONSTRAINT formacion_departamento_pkey
     PRIMARY KEY (cod_forma_dep);
 --
--- Definition for index formacion_pkey (OID = 18314) : 
+-- Definition for index formacion_pkey (OID = 19502) : 
 --
 ALTER TABLE ONLY formacion
     ADD CONSTRAINT formacion_pkey
     PRIMARY KEY (cod_formacion);
 --
--- Definition for index manuales_indicadores_pkey (OID = 18316) : 
+-- Definition for index manuales_indicadores_pkey (OID = 19504) : 
 --
 ALTER TABLE ONLY manuales_indicadores
     ADD CONSTRAINT manuales_indicadores_pkey
     PRIMARY KEY (codigo);
 --
--- Definition for index poblacion_estudiantes_pkey (OID = 18318) : 
---
-ALTER TABLE ONLY poblacion_estudiantes
-    ADD CONSTRAINT poblacion_estudiantes_pkey
-    PRIMARY KEY (anho);
---
--- Definition for index programas_pkey (OID = 18320) : 
+-- Definition for index programas_pkey (OID = 19506) : 
 --
 ALTER TABLE ONLY programas
     ADD CONSTRAINT programas_pkey
     PRIMARY KEY (snies);
 --
--- Definition for index users_codigo_key (OID = 18322) : 
+-- Definition for index users_codigo_key (OID = 19508) : 
 --
 ALTER TABLE ONLY users
     ADD CONSTRAINT users_codigo_key
     UNIQUE (codigo);
 --
--- Definition for index users_pkey (OID = 18324) : 
+-- Definition for index users_pkey (OID = 19510) : 
 --
 ALTER TABLE ONLY users
     ADD CONSTRAINT users_pkey
     PRIMARY KEY ("user", pass);
 --
--- Definition for index KPI_Acreditacion_fk (OID = 18333) : 
+-- Definition for index KPI_Acreditacion_fk (OID = 19520) : 
 --
 SET search_path = "Datawarehouse", pg_catalog;
 ALTER TABLE ONLY "KPI_Acreditacion"
     ADD CONSTRAINT "KPI_Acreditacion_fk"
     FOREIGN KEY ("manual_Acredita") REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Cohort_Dropout_fk (OID = 18338) : 
+-- Definition for index KPI_Cohort_Dropout_fk (OID = 19525) : 
 --
 ALTER TABLE ONLY "KPI_Desercion_Cohorte"
     ADD CONSTRAINT "KPI_Cohort_Dropout_fk"
     FOREIGN KEY (programa) REFERENCES public.programas(snies);
 --
--- Definition for index KPI_Desercion_Cohorte_fk (OID = 18343) : 
+-- Definition for index KPI_Desercion_Cohorte_fk (OID = 19530) : 
 --
 ALTER TABLE ONLY "KPI_Desercion_Cohorte"
     ADD CONSTRAINT "KPI_Desercion_Cohorte_fk"
     FOREIGN KEY (manual) REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Desercion_Periodo_fk (OID = 18348) : 
+-- Definition for index KPI_Desercion_Periodo_fk (OID = 19535) : 
 --
 ALTER TABLE ONLY "KPI_Desercion_Periodo"
     ADD CONSTRAINT "KPI_Desercion_Periodo_fk"
     FOREIGN KEY (manual) REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Formacion_fk (OID = 18363) : 
+-- Definition for index KPI_Estudiantes_por_Docentes_TC_fk (OID = 19540) : 
+--
+ALTER TABLE ONLY "KPI_Estudiantes_por_Docentes_TC"
+    ADD CONSTRAINT "KPI_Estudiantes_por_Docentes_TC_fk"
+    FOREIGN KEY ("manual_Estu_Docente") REFERENCES public.manuales_indicadores(codigo);
+--
+-- Definition for index KPI_Formacion_fk (OID = 19550) : 
 --
 ALTER TABLE ONLY "KPI_Formacion"
     ADD CONSTRAINT "KPI_Formacion_fk"
     FOREIGN KEY (formacion) REFERENCES public.formacion(cod_formacion);
 --
--- Definition for index KPI_Formacion_fk1 (OID = 18368) : 
+-- Definition for index KPI_Formacion_fk1 (OID = 19555) : 
 --
 ALTER TABLE ONLY "KPI_Formacion"
     ADD CONSTRAINT "KPI_Formacion_fk1"
     FOREIGN KEY ("manual_Formacion") REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Nivel_Satisfaccion_fk (OID = 18373) : 
+-- Definition for index KPI_Nivel_Satisfaccion_fk (OID = 19560) : 
 --
 ALTER TABLE ONLY "KPI_Nivel_Satisfaccion"
     ADD CONSTRAINT "KPI_Nivel_Satisfaccion_fk"
     FOREIGN KEY (manual) REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Period_Dropout_fk (OID = 18378) : 
+-- Definition for index KPI_Period_Dropout_fk (OID = 19565) : 
 --
 ALTER TABLE ONLY "KPI_Desercion_Periodo"
     ADD CONSTRAINT "KPI_Period_Dropout_fk"
     FOREIGN KEY (programa) REFERENCES public.programas(snies);
 --
--- Definition for index KPI_Relacion_Docentes_fk (OID = 18383) : 
+-- Definition for index KPI_Relacion_Docentes_fk (OID = 19570) : 
 --
 ALTER TABLE ONLY "KPI_Relacion_Docentes"
     ADD CONSTRAINT "KPI_Relacion_Docentes_fk"
     FOREIGN KEY ("manual_Rela") REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Satisfaction_level_fk (OID = 18388) : 
+-- Definition for index KPI_Satisfaction_level_fk (OID = 19575) : 
 --
 ALTER TABLE ONLY "KPI_Nivel_Satisfaccion"
     ADD CONSTRAINT "KPI_Satisfaction_level_fk"
     FOREIGN KEY ("Programa") REFERENCES public.programas(snies);
 --
--- Definition for index acreditacion_alta_calidad_fk (OID = 18393) : 
+-- Definition for index acreditacion_alta_calidad_fk (OID = 19580) : 
 --
 SET search_path = public, pg_catalog;
 ALTER TABLE ONLY acreditacion_alta_calidad
     ADD CONSTRAINT acreditacion_alta_calidad_fk
     FOREIGN KEY (programa) REFERENCES programas(snies);
 --
--- Definition for index formacion_departamento_fk (OID = 18398) : 
---
-ALTER TABLE ONLY formacion_departamento
-    ADD CONSTRAINT formacion_departamento_fk
-    FOREIGN KEY (departamento) REFERENCES users(codigo);
---
--- Definition for index formacion_fk (OID = 18403) : 
---
-ALTER TABLE ONLY formacion_departamento
-    ADD CONSTRAINT formacion_fk
-    FOREIGN KEY (formacion) REFERENCES formacion(cod_formacion);
---
--- Definition for index KPI_Estudiantes_por_Docentes_TC_fk (OID = 18419) : 
---
-SET search_path = "Datawarehouse", pg_catalog;
-ALTER TABLE ONLY "KPI_Estudiantes_por_Docentes_TC"
-    ADD CONSTRAINT "KPI_Estudiantes_por_Docentes_TC_fk"
-    FOREIGN KEY ("manual_Estu_Docente") REFERENCES public.manuales_indicadores(codigo);
---
--- Definition for index estudiantes_departamento_pkey (OID = 18436) : 
---
-SET search_path = public, pg_catalog;
-ALTER TABLE ONLY estudiantes_departamento
-    ADD CONSTRAINT estudiantes_departamento_pkey
-    PRIMARY KEY (cod_est_dep);
---
--- Definition for index estudiantes_departamento_fk (OID = 18438) : 
+-- Definition for index estudiantes_departamento_fk (OID = 19585) : 
 --
 ALTER TABLE ONLY estudiantes_departamento
     ADD CONSTRAINT estudiantes_departamento_fk
     FOREIGN KEY (departamento) REFERENCES users(codigo);
 --
--- Definition for trigger tr_actua_satisfaccion (OID = 18327) : 
+-- Definition for index formacion_departamento_fk (OID = 19590) : 
+--
+ALTER TABLE ONLY formacion_departamento
+    ADD CONSTRAINT formacion_departamento_fk
+    FOREIGN KEY (departamento) REFERENCES users(codigo);
+--
+-- Definition for index formacion_fk (OID = 19595) : 
+--
+ALTER TABLE ONLY formacion_departamento
+    ADD CONSTRAINT formacion_fk
+    FOREIGN KEY (formacion) REFERENCES formacion(cod_formacion);
+--
+-- Definition for trigger tr_actua_satisfaccion (OID = 19512) : 
 --
 SET search_path = "Datawarehouse", pg_catalog;
 CREATE TRIGGER tr_actua_satisfaccion
@@ -4287,73 +4258,70 @@ CREATE TRIGGER tr_actua_satisfaccion
     FOR EACH ROW
     EXECUTE PROCEDURE public.fun_actua_satisfaccion ();
 --
--- Definition for trigger tr_cohort_desertion (OID = 18328) : 
+-- Definition for trigger tr_cohort_desertion (OID = 19513) : 
 --
 CREATE TRIGGER tr_cohort_desertion
     BEFORE INSERT ON "KPI_Desercion_Cohorte"
     FOR EACH ROW
     EXECUTE PROCEDURE fun_delete_cohort ();
 --
--- Definition for trigger tr_period_desertion (OID = 18329) : 
+-- Definition for trigger tr_period_desertion (OID = 19514) : 
 --
 CREATE TRIGGER tr_period_desertion
     BEFORE INSERT ON "KPI_Desercion_Periodo"
     FOR EACH ROW
     EXECUTE PROCEDURE fun_delete_period ();
 --
--- Definition for trigger tr_relacion (OID = 18330) : 
+-- Definition for trigger tr_relacion (OID = 19515) : 
 --
 CREATE TRIGGER tr_relacion
     AFTER INSERT OR UPDATE ON "KPI_Formacion"
     FOR EACH ROW
     EXECUTE PROCEDURE fun_actua_relacion ();
 --
--- Definition for trigger tr_for_dep (OID = 18331) : 
+-- Definition for trigger tr_est_dep (OID = 19516) : 
 --
 SET search_path = public, pg_catalog;
-CREATE TRIGGER tr_for_dep
-    BEFORE INSERT ON formacion_departamento
-    FOR EACH ROW
-    EXECUTE PROCEDURE "Actua_Formacion_Dep" ();
---
--- Definition for trigger tr_kpi_form (OID = 18332) : 
---
-CREATE TRIGGER tr_kpi_form
-    AFTER INSERT OR UPDATE ON formacion_departamento
-    FOR EACH ROW
-    EXECUTE PROCEDURE "Fun_Actua_KPI_Form" ();
---
--- Definition for trigger tr_est_dep (OID = 18444) : 
---
 CREATE TRIGGER tr_est_dep
     BEFORE INSERT ON estudiantes_departamento
     FOR EACH ROW
     EXECUTE PROCEDURE "Actua_Estudiantes_Dep" ();
 --
--- Definition for trigger tr_kpi_est_dep (OID = 18446) : 
+-- Definition for trigger tr_for_dep (OID = 19517) : 
 --
-CREATE TRIGGER tr_kpi_est_dep
-    AFTER INSERT OR UPDATE ON estudiantes_departamento
+CREATE TRIGGER tr_for_dep
+    BEFORE INSERT ON formacion_departamento
     FOR EACH ROW
-    EXECUTE PROCEDURE "Fun_Actua_KPI_Est_Dep" ();
-
-ALTER TABLE estudiantes_departamento
-  DISABLE TRIGGER tr_kpi_est_dep;
+    EXECUTE PROCEDURE "Actua_Formacion_Dep" ();
 --
--- Definition for trigger tr_kpi_est_doc (OID = 18448) : 
+-- Definition for trigger tr_kpi_est_doc (OID = 19518) : 
 --
 CREATE TRIGGER tr_kpi_est_doc
     AFTER INSERT OR UPDATE ON estudiantes_departamento
     FOR EACH ROW
     EXECUTE PROCEDURE "Fun_Actua_KPI_Est_Doc" ();
 --
--- Data for sequence public.formacion_departamento_cod_forma_dep_seq (OID = 18274)
+-- Definition for trigger tr_kpi_form (OID = 19519) : 
+--
+CREATE TRIGGER tr_kpi_form
+    AFTER INSERT OR UPDATE ON formacion_departamento
+    FOR EACH ROW
+    EXECUTE PROCEDURE "Fun_Actua_KPI_Form" ();
+--
+-- Definition for trigger tr_kpi_est_doc_udenar (OID = 19804) : 
+--
+CREATE TRIGGER tr_kpi_est_doc_udenar
+    AFTER INSERT OR UPDATE ON estudiantes_departamento
+    FOR EACH ROW
+    EXECUTE PROCEDURE "Fun_Actua_KPI_Est_Doc_UDENAR" ();
+--
+-- Data for sequence public.estudiantes_departamento_cod_est_dep_seq (OID = 19462)
+--
+SELECT pg_catalog.setval('estudiantes_departamento_cod_est_dep_seq', 1, false);
+--
+-- Data for sequence public.formacion_departamento_cod_forma_dep_seq (OID = 19470)
 --
 SELECT pg_catalog.setval('formacion_departamento_cod_forma_dep_seq', 11445, true);
---
--- Data for sequence public.estudiantes_departamento_cod_est_dep_seq (OID = 18430)
---
-SELECT pg_catalog.setval('estudiantes_departamento_cod_est_dep_seq', 12528, true);
 --
 -- Comments
 --
