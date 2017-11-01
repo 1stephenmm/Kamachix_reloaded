@@ -481,13 +481,8 @@ function Load_Department_List(){
    //realizar a la base de daos
    //se ejecutasi todo se realiza bien
    success : function(json) {
-     $("#lstdep").append('<option selected value="'+
-     '0'+'">'
+     $("#lstdep").append('<option selected value='+"0"+'>'
      +'Seleccione Departamento'
-     +'</option>');
-     $("#lstdep").append('<option value="'+
-     'UD'+'">'
-     +'Universidad de Nariño'
      +'</option>');
      for (var i = 0; i < json.rowCount; i++) {
        $("#lstdep").append('<option value="'+
@@ -495,6 +490,9 @@ function Load_Department_List(){
        +json.rows[i].name
        +'</option>');
      }
+     $("#lstdep").append('<option value='+"UD"+'>'
+     +'Universidad de Nariño'
+     +'</option>');
    }
  });
 }
@@ -506,11 +504,6 @@ function Load_Filter(){//valida y carga filtro de años a consulta KPI
   if(yearfrom==0 && yearto==0){
     ban=false;
     $("#messageError").html("Seleccione una opción de cada lista");
-    $('#myModal').modal('show');
-  }
-  else if(yearfrom==yearto  && yearfrom!=0 && yearto!=0){
-    ban=false;
-    $("#messageError").html("No seleccione el mismo año dos veces");
     $('#myModal').modal('show');
   }
   else if(yearfrom>yearto && yearto!=0){
@@ -541,7 +534,7 @@ function Load_Filter(){//valida y carga filtro de años a consulta KPI
         else{
           var now = new Date();
           $("#departamento").html(json.datos[0].departamento);
-          
+          json.datos[0].departamento=json.datos[0].departamento.replace('Departamento de ','');
           $("#graph1").change(function () {
             if($(this).val() === '1'){
               columnGraph(json.datos,'divgraph2','Número de Estudiantes por \nDocente Tiempo Completo y Ocasional\n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[3],0,0);
