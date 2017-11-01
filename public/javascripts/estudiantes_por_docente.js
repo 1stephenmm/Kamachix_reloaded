@@ -641,20 +641,19 @@ function Load_Filter(){//valida y carga filtro de años a consulta KPI
             }
             //en caso de que el simbolo del rango muy adecuado sea '= '
             if(json.datos[i].sim_Rango_MA === '= '){
-              if(json.datos[i].razonanual == json.datos[i].num_Rango_MA){
-                $("#tableres").append('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Meta de Estudiantes por Docente Tiempo Completo y Completo Ocasional alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
-              }
-              else if(json.datos[i].sim_Rango_A === '> '){
-                if(json.datos[i].razonanual > json.datos[i].num_Rango_I){
+              if(json.datos[i].sim_Rango_A === '> '){
+
+                if(json.datos[i].razonanual == json.datos[i].num_Rango_MA){
+                  $("#tableres").append('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Meta de Estudiantes por Docente Tiempo Completo y Completo Ocasional alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
+                }
+                else if(json.datos[i].razonanual > json.datos[i].num_Rango_I || json.datos[i].razonanual>99){
                   $("#tableres").append('<td class="est"><img id="est" src="/images/red.svg" alt="RED" title="Meta de Estudiantes por Docente Tiempo Completo y Completo Ocasional no alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
                 }
-                else{
-                  if(json.datos[i].razonanual > json.datos[i].num_Rango_MA){
+                else if(json.datos[i].razonanual > json.datos[i].num_Rango_MA){
                     $("#tableres").append('<td class="est"><img id="est" src="/images/orange.svg" alt="ORANGE" title="La meta de Estudiantes por Docente Tiempo y Completo Ocasional Completo se ha alejado ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
-                  }  
-                  else{
+                }  
+                else if (json.datos[i].razonanual < json.datos[i].num_Rango_MA || json.datos[i].razonanual<10){
                     $("#tableres").append('<td class="est"><img id="est" src="/images/verde.svg" alt="GREEN" title="Meta de Estudiantes por Docente Tiempo Completo y Completo Ocasional alcanzada ('+json.datos[i].razonanual+' de '+parseInt(json.datos[i].num_Rango_MA)+')"></td>');
-                  } 
                 }
               }
               else if(json.datos[i].sim_Rango_A === '< '){
