@@ -307,12 +307,12 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
           
         if(json.rows[json.rowCount-1].sim_Rango_MA == '> ' && json.rows[json.rowCount-1].sim_Rango_I == '< '){
           
-          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','y','g',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',150);
+          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','y','g',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',200);
           
         }        
         else if(json.rows[json.rowCount-1].sim_Rango_MA === '= ' && json.rows[json.rowCount-1].sim_Rango_A == '< ' && json.rows[json.rowCount-1].sim_Rango_A == '> ' ){    
                       
-          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','g','y',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',150);
+          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','r','g','y',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',200);
           
         }        
 
@@ -325,7 +325,7 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
         }
         else {  
                       
-          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','g','y','r',json.rows[json.rowCount-1].num_Rango_MA,json.rows[json.rowCount-1].num_Rango_I,'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',150);
+          gaugesGraph(json.rows[json.rowCount-1].razonanual,'divgraph3','g','y','r',json.rows[json.rowCount-1].num_Rango_MA,json.rows[json.rowCount-1].num_Rango_I,'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',200);
           
         }
 
@@ -336,14 +336,14 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
           
         if(json.rows[json.rowCount-2].sim_Rango_MA == '> ' && json.rows[json.rowCount-2].sim_Rango_I == '< '){
           
-          gaugesGraph(json.rows[json.rowCount-2].razonanual,'divgraph3','r','y','g',json.rows[json.rowCount-2].num_Rango_I,json.rows[json.rowCount-2].num_Rango_MA, 'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',150);
+          gaugesGraph(json.rows[json.rowCount-2].razonanual,'divgraph3','r','y','g',json.rows[json.rowCount-2].num_Rango_I,json.rows[json.rowCount-2].num_Rango_MA, 'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',200);
           
         }   
 
         
         else if(json.rows[json.rowCount-2].sim_Rango_MA === '= ' && json.rows[json.rowCount-2].sim_Rango_A == '< ' && json.rows[json.rowCount-2].sim_Rango_A == '> ' ){    
                       
-          gaugesGraph(json.rows[json.rowCount-2].razonanual,'divgraph3','r','g','y',json.rows[json.rowCount-2].num_Rango_I,json.rows[json.rowCount-2].num_Rango_MA,'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',150);
+          gaugesGraph(json.rows[json.rowCount-2].razonanual,'divgraph3','r','g','y',json.rows[json.rowCount-2].num_Rango_I,json.rows[json.rowCount-2].num_Rango_MA,'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',200);
           
         }
         
@@ -356,7 +356,7 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
           
         }
         else {                         
-          gaugesGraph(json.rows[json.rowCount-2].razonanual,'divgraph3','g','y','r',json.rows[json.rowCount-2].num_Rango_MA,json.rows[json.rowCount-2].num_Rango_I, 'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',150);
+          gaugesGraph(json.rows[json.rowCount-2].razonanual,'divgraph3','g','y','r',json.rows[json.rowCount-2].num_Rango_MA,json.rows[json.rowCount-2].num_Rango_I, 'Estudiantes por \nDocente Tiempo Completo y Ocasional\nUDENAR', ' estudiantes',200);
           
         }
         
@@ -413,14 +413,14 @@ function Load_Semiannual(){//carga graficos semestralizados de indicador a lo la
      lineTwoGraph(datarray,'divgraph4','Número de estudiantes por \nDocente Tiempo Completo y Ocasional\n por Semestre\n UDENAR',json.fields[0].name,json.fields[1].name,json.fields[2].name,"A","B");
      //semaforo divper2 y divper1     
       if(json.rows[json.rowCount-1].sim_Rango_MA == '> ' && json.rows[json.rowCount-1].sim_Rango_I == '< '){
-        gaugesGraph(json.rows[json.rowCount-5].razonanual,'divper1','r','y','g',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.rows[json.rowCount-5].Anho+'\nUDENAR', '',150);
-        gaugesGraph(json.rows[json.rowCount-1].razonanual,'divper2','r','y','g',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ fin+'\nUDENAR', '',150);            
+        gaugesGraph(json.rows[json.rowCount-5].razonanual,'divper1','r','y','g',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.rows[json.rowCount-5].Anho+'\nUDENAR', '',200);
+        gaugesGraph(json.rows[json.rowCount-1].razonanual,'divper2','r','y','g',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ fin+'\nUDENAR', '',200);            
         
         
       }      
       else if(json.rows[json.rowCount-1].sim_Rango_MA === '= ' && json.rows[json.rowCount-1].sim_Rango_A == '< ' && json.rows[json.rowCount-1].sim_Rango_A == '> ' ){    
-        gaugesGraph(json.rows[json.rowCount-5].razonanual,'divper1','r','g','y',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.rows[json.rowCount-5].Anho+'\nUDENAR', '',150);
-        gaugesGraph(json.rows[json.rowCount-1].razonanual,'divper2','r','g','y',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ fin+'\nUDENAR', '',150);                        
+        gaugesGraph(json.rows[json.rowCount-5].razonanual,'divper1','r','g','y',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.rows[json.rowCount-5].Anho+'\nUDENAR', '',200);
+        gaugesGraph(json.rows[json.rowCount-1].razonanual,'divper2','r','g','y',json.rows[json.rowCount-1].num_Rango_I,json.rows[json.rowCount-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ fin+'\nUDENAR', '',200);                        
         
       }     
 
@@ -431,8 +431,8 @@ function Load_Semiannual(){//carga graficos semestralizados de indicador a lo la
          
       }
       else {                      
-        gaugesGraph(json.rows[json.rowCount-5].razonanual,'divper1','g','y','r',json.rows[json.rowCount-5].num_Rango_MA,json.rows[json.rowCount-5].num_Rango_I, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.rows[json.rowCount-5].Anho+'\nUDENAR', '',150);
-        gaugesGraph(json.rows[json.rowCount-1].razonanual,'divper2','g','y','r',json.rows[json.rowCount-1].num_Rango_MA,json.rows[json.rowCount-1].num_Rango_I, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ fin+'\nUDENAR', '',150);            
+        gaugesGraph(json.rows[json.rowCount-5].razonanual,'divper1','g','y','r',json.rows[json.rowCount-5].num_Rango_MA,json.rows[json.rowCount-5].num_Rango_I, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.rows[json.rowCount-5].Anho+'\nUDENAR', '',200);
+        gaugesGraph(json.rows[json.rowCount-1].razonanual,'divper2','g','y','r',json.rows[json.rowCount-1].num_Rango_MA,json.rows[json.rowCount-1].num_Rango_I, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ fin+'\nUDENAR', '',200);            
         
       }
       
@@ -681,10 +681,10 @@ function Load_Filter(){//valida y carga filtro de años a consulta KPI
           }
 
           if(json.datos[json.count-1].sim_Rango_MA == '> ' && json.datos[json.count-1].sim_Rango_I == '< '){
-            gaugesGraph(json.datos[json.count-1].razonanual,'divgraph3','r','y','g',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por \nDocente Tiempo Completo y Ocasional \naño:'+json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, ' estudiantes',150);
+            gaugesGraph(json.datos[json.count-1].razonanual,'divgraph3','r','y','g',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por \nDocente Tiempo Completo y Ocasional \naño:'+json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, ' estudiantes',200);
           }   
           else if(json.datos[json.count-1].sim_Rango_MA === '= ' && json.datos[json.count-1].sim_Rango_A == '< ' && json.datos[json.count-1].sim_Rango_A == '> ' ){    
-            gaugesGraph(json.datos[json.count-1].razonanual,'divgraph3','r','g','y',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA,'Estudiantes por \nDocente Tiempo Completo y Ocasional \naño:'+json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, ' estudiantes',150);
+            gaugesGraph(json.datos[json.count-1].razonanual,'divgraph3','r','g','y',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA,'Estudiantes por \nDocente Tiempo Completo y Ocasional \naño:'+json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, ' estudiantes',200);
           }
           else if(json.datos[json.count-1].sim_Rango_MA === '= ' && json.datos[json.count-1].sim_Rango_A == '< ' && json.datos[json.count-1].sim_Rango_A == '< ' ){
             //alert('los simbolos para los rangos Adecuado e inadecuado no pueden ser el simbolo menor(<). por ende la grafica del estado del indicador (velocimetro) no se mostrara');
@@ -692,7 +692,7 @@ function Load_Filter(){//valida y carga filtro de años a consulta KPI
             $('#myModal').modal('show');
           }
           else {                         
-            gaugesGraph(json.datos[json.count-1].razonanual,'divgraph3','g','y','r',json.datos[json.count-1].num_Rango_MA,json.datos[json.count-1].num_Rango_I, 'Estudiantes por \nDocente Tiempo Completo y Ocasional \naño:'+json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, ' estudiantes',150);
+            gaugesGraph(json.datos[json.count-1].razonanual,'divgraph3','g','y','r',json.datos[json.count-1].num_Rango_MA,json.datos[json.count-1].num_Rango_I, 'Estudiantes por \nDocente Tiempo Completo y Ocasional \naño:'+json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, ' estudiantes',200);
           }
 
           $("#lblper").html("<br> Indicador Estudiantes por Docente Tiempo Completo y Completo Ocasional años: "+json.datos[0].Anho+" a "+json.datos[json.count-1].Anho);
@@ -719,14 +719,14 @@ function Load_Filter(){//valida y carga filtro de años a consulta KPI
           lineTwoGraph(json.datos,'divgraph4','Número de estudiantes por \nDocente Tiempo Completo y Ocasional\n por Semestre\n'+json.datos[0].departamento,json.fieldsthree[0],json.fieldsthree[1],json.fieldsthree[2],"A","B");
           //semaforo divper2 y divper1     
           if(json.datos[json.count-1].sim_Rango_MA == '> ' && json.datos[json.count-1].sim_Rango_I == '< '){
-            gaugesGraph(json.datos[0].razonanual,'divper1','r','y','g',json.datos[0].num_Rango_I,json.datos[0].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.datos[0].Anho+'\n'+json.datos[0].departamento, '',150);
-            gaugesGraph(json.datos[json.count-1].razonanual,'divper2','r','y','g',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, '',150);            
+            gaugesGraph(json.datos[0].razonanual,'divper1','r','y','g',json.datos[0].num_Rango_I,json.datos[0].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.datos[0].Anho+'\n'+json.datos[0].departamento, '',200);
+            gaugesGraph(json.datos[json.count-1].razonanual,'divper2','r','y','g',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, '',200);            
           
           
           }      
           else if(json.datos[json.count-1].sim_Rango_MA === '= ' && json.datos[json.count-1].sim_Rango_A == '< ' && json.datos[json.count-1].sim_Rango_A == '> ' ){    
-            gaugesGraph(json.datos[0].razonanual,'divper1','r','g','y',json.datos[0].num_Rango_I,json.datos[0].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.datos[0].Anho+'\n'+json.datos[0].departamento, '',150);
-            gaugesGraph(json.datos[json.count-1].razonanual,'divper2','r','g','y',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, '',150);                        
+            gaugesGraph(json.datos[0].razonanual,'divper1','r','g','y',json.datos[0].num_Rango_I,json.datos[0].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.datos[0].Anho+'\n'+json.datos[0].departamento, '',200);
+            gaugesGraph(json.datos[json.count-1].razonanual,'divper2','r','g','y',json.datos[json.count-1].num_Rango_I,json.datos[json.count-1].num_Rango_MA, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, '',200);                        
           
           }     
 
@@ -737,8 +737,8 @@ function Load_Filter(){//valida y carga filtro de años a consulta KPI
           
           }
           else {                      
-            gaugesGraph(json.datos[0].razonanual,'divper1','g','y','r',json.datos[0].num_Rango_MA,json.datos[0].num_Rango_I, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.datos[0].Anho+'\n'+json.datos[0].departamento, '',150);
-            gaugesGraph(json.datos[json.count-1].razonanual,'divper2','g','y','r',json.datos[json.count-1].num_Rango_MA,json.datos[json.count-1].num_Rango_I, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, '',150);            
+            gaugesGraph(json.datos[0].razonanual,'divper1','g','y','r',json.datos[0].num_Rango_MA,json.datos[0].num_Rango_I, 'Estudiantes por Docente Tiempo Completo y Ocasional año:'+json.datos[0].Anho+'\n'+json.datos[0].departamento, '',200);
+            gaugesGraph(json.datos[json.count-1].razonanual,'divper2','g','y','r',json.datos[json.count-1].num_Rango_MA,json.datos[json.count-1].num_Rango_I, 'Estudiantes por Docente Tiempo Completo y Ocasional año: '+ json.datos[json.count-1].Anho+'\n'+json.datos[0].departamento, '',200);            
           
           }
       
