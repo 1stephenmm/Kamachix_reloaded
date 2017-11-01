@@ -261,7 +261,25 @@ function Load_Start(){//carga tabla y gráficos anuales del indicador a partir d
         }
       //-----------------------------------------------------------------
         $("#tableres").append('</tr>');
-       }
+      }
+      
+      $("#tablefirstot").html('');
+      $("#tablelastot").html('');
+      $("#tablefirstot").html('Al Año '+json.rows[json.rowCount-5].Anho);
+      $("#nfirstest").html('Total Estudiantes: '+json.rows[json.rowCount-5].estudiantes);
+      $("#nfirstdoctc").html('Total Docentes entre Tiempo Completo y Completo Ocasional: '+json.rows[json.rowCount-5].docentes);
+
+      if (json.rows[json.rowCount-1].razonb==0){
+        $("#tablelastot").html('Al año '+json.rows[json.rowCount-2].Anho);
+        $("#nlastest").html('Total Estudiantes: '+json.rows[json.rowCount-2].estudiantes);
+        $("#nlastdoctc").html('Total Docentes entre Tiempo Completo y Completo Ocasional: '+json.rows[json.rowCount-2].docentes);
+      }
+      else{
+        $("#tablelastot").html('Al año '+json.rows[json.rowCount-1].Anho);
+        $("#nlastest").html('Total Estudiantes: '+json.rows[json.rowCount-1].estudiantes);
+        $("#nlastdoctc").html('Total Docentes entre Tiempo Completo y Completo Ocasional: '+json.rows[json.rowCount-1].docentes);
+        $("#flaglastdoctc").html('Total Estudiantes: '+json.rows[json.rowCount-1].estudiantes);
+      }
 
        //--Filtra gráficas a 5 años-----------------------------
        var datarray=[];
@@ -670,6 +688,22 @@ function Load_Filter(){//valida y carga filtro de años a consulta KPI
             }
           //-----------------------------------------------------------------
             $("#tableres").append('</tr>');
+          }
+
+          $("#tablefirstot").html('');
+          $("#tablelastot").html('');
+          $("#tablefirstot").html('Al Año '+json.datos[0].Anho);
+          $("#nfirstest").html('Total Estudiantes: '+json.datos[0].estudiantes);
+          $("#nfirstdoctc").html('Total Docentes entre Tiempo Completo y Completo Ocasional: '+json.datos[0].docentes);
+          if (json.datos[json.count-1].razonb==0){
+            $("#tablelastot").html('Al año '+json.rows[json.count-2].Anho);
+            $("#nlastest").html('Total Estudiantes: '+json.datos[json.count-2].estudiantes);
+            $("#nlastdoctc").html('Total Docentes entre Tiempo Completo y Completo Ocasional: '+json.rows[json.rowCount-2].docentes);
+          }
+          else{
+            $("#tablelastot").html('Al año '+json.datos[json.count-1].Anho);
+            $("#nlastest").html('Total Estudiantes: '+json.datos[json.count-1].estudiantes);
+            $("#nlastdoctc").html('Total Docentes entre Tiempo Completo y Completo Ocasional: '+json.datos[json.count-1].docentes);
           }
 
           if(json.datos[json.count-1].sim_Rango_MA == '> ' && json.datos[json.count-1].sim_Rango_I == '< '){
