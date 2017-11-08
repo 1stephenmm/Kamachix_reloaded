@@ -1,14 +1,14 @@
 ﻿-- SQL Manager for PostgreSQL 5.7.0.46919
 -- ---------------------------------------
 -- Host      : localhost
--- Database  : datos_indicadores_reloaded
+-- Database  : datos_indicadores
 -- Version   : PostgreSQL 9.6.5, compiled by Visual C++ build 1800, 64-bit
 
 
 
 CREATE SCHEMA "Datawarehouse" AUTHORIZATION postgres;
 --
--- Definition for function fun_actua_formacion (OID = 28650) : 
+-- Definition for function fun_actua_formacion (OID = 19400) : 
 --
 SET search_path = "Datawarehouse", pg_catalog;
 SET check_function_bodies = false;
@@ -30,7 +30,7 @@ BEGIN
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function fun_actua_relacion (OID = 28651) : 
+-- Definition for function fun_actua_relacion (OID = 19401) : 
 --
 CREATE FUNCTION "Datawarehouse".fun_actua_relacion (
 )
@@ -53,7 +53,7 @@ BEGIN
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function fun_delete_cohort (OID = 28652) : 
+-- Definition for function fun_delete_cohort (OID = 19402) : 
 --
 CREATE FUNCTION "Datawarehouse".fun_delete_cohort (
 )
@@ -72,7 +72,7 @@ END;
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function fun_delete_period (OID = 28653) : 
+-- Definition for function fun_delete_period (OID = 19403) : 
 --
 CREATE FUNCTION "Datawarehouse".fun_delete_period (
 )
@@ -91,9 +91,28 @@ END;
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function Actua_Formacion_Dep (OID = 28654) : 
+-- Definition for function Actua_Estudiantes_Dep (OID = 19404) : 
 --
 SET search_path = public, pg_catalog;
+CREATE FUNCTION public."Actua_Estudiantes_Dep" (
+)
+RETURNS trigger
+AS 
+$body$
+DECLARE
+  cantidad_e INTEGER;
+BEGIN
+  SELECT Count(*) INTO cantidad_e FROM estudiantes_departamento ek WHERE ek.departamento = new.departamento and ek.anho=NEW.anho and ek.periodo=new.periodo;
+	IF cantidad_e > 0 THEN
+    	DELETE  FROM estudiantes_departamento ek WHERE ek.departamento = new.departamento and ek.anho=NEW.anho and ek.periodo=new.periodo;
+   	END IF;  
+   	return new;
+END;
+$body$
+LANGUAGE plpgsql;
+--
+-- Definition for function Actua_Formacion_Dep (OID = 19405) : 
+--
 CREATE FUNCTION public."Actua_Formacion_Dep" (
 )
 RETURNS trigger
@@ -111,7 +130,153 @@ BEGIN
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function Fun_Actua_KPI_Form (OID = 28655) : 
+-- Definition for function Fun_Actua_KPI_Est_Doc (OID = 19406) : 
+--
+CREATE FUNCTION public."Fun_Actua_KPI_Est_Doc" (
+)
+RETURNS trigger
+AS 
+$body$
+DECLARE
+  cantidad_e INTEGER;
+BEGIN
+	SELECT Count(*) INTO cantidad_e FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" ek WHERE ek."Anho"=NEW.anho AND ek.departamento=NEW.departamento;
+		IF NEW.departamento<>'99' THEN
+			IF cantidad_e < 1 THEN
+				IF NEW.periodo='1' THEN
+					INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentestc,docentesoc,razona,razonanual) 
+						SELECT 
+							t2.departamento, 
+							t1.anho, 
+							t1.ea::numeric(5,0),
+							t2.datc::numeric(3,0),
+                            t2.daoc::numeric(3,0),
+							t1.ea/(t2.datc+t2.daoc)::numeric(3,0),
+							t1.ea/(t2.datc+t2.daoc)::numeric(3,0)
+						FROM ( 
+							SELECT anho,matriculados AS ea
+							FROM estudiantes_departamento 
+							WHERE 
+								periodo = NEW.periodo 
+							AND 
+								anho = NEW.anho 
+							AND 
+								departamento = NEW.departamento) t1
+						JOIN ( 
+							SELECT anio,departamento,sum(t_completo) AS datc,sum(t_ocasional) AS daoc
+							FROM formacion_departamento 
+							WHERE
+								periodo = NEW.periodo 
+							AND 
+								anio=NEW.anho 
+							AND
+								departamento = NEW.departamento 
+							GROUP BY anio,departamento) t2 
+						ON t2.departamento=NEW.departamento
+						ORDER BY t1.anho;
+				ELSE
+					INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentestc,docentesoc,razonb,razonanual) 
+						SELECT 
+							t2.departamento,
+							t1.anho, 
+							t1.eb::numeric(5,0),
+							t2.dbtc::numeric(3,0),
+                            t2.dboc::numeric(3,0),
+							t1.eb/(t2.dbtc+t2.dboc)::numeric(3,0),
+							t1.eb/(t2.dbtc+t2.dboc)::numeric(3,0)
+						FROM ( 
+							SELECT anho,matriculados AS eb
+							FROM estudiantes_departamento 
+							WHERE 
+								periodo = NEW.periodo 
+							AND 
+								anho = NEW.anho
+							AND 
+								departamento = NEW.departamento) t1
+						JOIN ( 
+							SELECT anio,departamento,sum(t_completo) AS dbtc,sum(t_ocasional) AS dboc
+							FROM formacion_departamento 
+							WHERE 
+								periodo = NEW.periodo 
+							AND 
+								anio=NEW.anho 
+							AND 
+								departamento=NEW.departamento 
+							GROUP BY anio,departamento) t2 
+						ON t2.departamento=NEW.departamento
+						ORDER BY t1.anho;
+				END IF;
+			ELSE
+                IF NEW.periodo='2' THEN
+                    UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+                        SET 
+                            estudiantes=(
+                                SELECT 
+                                    sum(matriculados)/2::numeric(5,0)
+                                FROM estudiantes_departamento 
+                                WHERE 
+                                    anho=NEW.anho
+                                AND 
+                                    departamento=NEW.departamento),
+                            docentestc=(
+                                SELECT 
+                                    (sum(t_completo))/2::numeric(3,0)
+                                FROM formacion_departamento 
+                                WHERE 
+                                    anio=NEW.anho
+                                AND 
+                                    departamento=NEW.departamento),
+                            docentesoc=(
+                                SELECT 
+                                    (sum(t_ocasional))/2::numeric(3,0)
+                                FROM formacion_departamento 
+                                WHERE 
+                                    anio=NEW.anho
+                                AND 
+                                    departamento=NEW.departamento)
+                        WHERE 
+                            "Anho"=new.anho
+                        AND
+                            departamento=NEW.departamento;
+                    UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+                        SET 
+                            razonanual=(
+                                SELECT 
+                                    estudiantes/(docentestc+docentesoc)::numeric(3,0)
+                                FROM 
+                                    "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
+                                WHERE
+                                    "Anho"=NEW.anho
+                                AND 
+                                    departamento=NEW.departamento)
+                        WHERE 
+                            "Anho"=new.anho
+                        AND
+                            departamento=NEW.departamento;
+                    UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+                        SET 
+                            razonb=(
+                                SELECT 
+                                    (2*razonanual-razona)::numeric(3,0)
+                                FROM 
+                                    "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
+                                WHERE
+                                    "Anho"=NEW.anho
+                                AND 
+                                    departamento=NEW.departamento)
+                        WHERE 
+                            "Anho"=new.anho
+                        AND
+                            departamento=NEW.departamento;
+                END IF;
+			END IF;
+		END IF;
+	return NEW;
+END;
+$body$
+LANGUAGE plpgsql;
+--
+-- Definition for function Fun_Actua_KPI_Form (OID = 19407) : 
 --
 CREATE FUNCTION public."Fun_Actua_KPI_Form" (
 )
@@ -138,7 +303,7 @@ BEGIN
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function fun_actua_satisfaccion (OID = 28656) : 
+-- Definition for function fun_actua_satisfaccion (OID = 19408) : 
 --
 CREATE FUNCTION public.fun_actua_satisfaccion (
 )
@@ -157,162 +322,7 @@ END;
 $body$
 LANGUAGE plpgsql;
 --
--- Definition for function Fun_Actua_KPI_Est_Doc (OID = 28657) : 
---
-CREATE FUNCTION public."Fun_Actua_KPI_Est_Doc" (
-)
-RETURNS trigger
-AS 
-$body$
-DECLARE
-  cantidad_e INTEGER;
-BEGIN
-	SELECT Count(*) INTO cantidad_e FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" ek WHERE ek."Anho"=NEW.anho AND ek.departamento=NEW.departamento;
-		/*IF NEW.departamento<>'99' THEN*/
-			IF cantidad_e < 1 THEN
-				IF NEW.periodo='1' THEN
-					INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razona,razonanual) 
-						SELECT 
-							t2.departamento, 
-							t1.anho, 
-							t1.ea::numeric(5,0),
-							t2.da::numeric(3,0),
-							t1.ea/t2.da::numeric(3,0),
-							t1.ea/t2.da::numeric(3,0)
-						FROM ( 
-							SELECT anho,matriculados AS ea
-							FROM estudiantes_departamento 
-							WHERE 
-								periodo = NEW.periodo 
-							AND 
-								anho = NEW.anho 
-							AND 
-								departamento = NEW.departamento) t1
-						JOIN ( 
-							SELECT anio,departamento,sum(t_completo) AS da
-							FROM formacion_departamento 
-							WHERE
-								periodo = NEW.periodo 
-							AND 
-								anio=NEW.anho 
-							AND
-								departamento = NEW.departamento 
-							GROUP BY anio,departamento) t2 
-						ON t2.departamento=NEW.departamento
-						ORDER BY t1.anho;
-				ELSE
-					INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razonb,razonanual) 
-						SELECT 
-							t2.departamento,
-							t1.anho, 
-							t1.eb::numeric(5,0),
-							t2.db::numeric(3,0),
-							t1.eb/t2.db::numeric(3,0),
-							t1.eb/t2.db::numeric(3,0)
-						FROM ( 
-							SELECT anho,matriculados AS eb
-							FROM estudiantes_departamento 
-							WHERE 
-								periodo = NEW.periodo 
-							AND 
-								anho = NEW.anho
-							AND 
-								departamento = NEW.departamento) t1
-						JOIN ( 
-							SELECT anio,departamento,sum(t_completo) AS db
-							FROM formacion_departamento 
-							WHERE 
-								periodo = NEW.periodo 
-							AND 
-								anio=NEW.anho 
-							AND 
-								departamento=NEW.departamento 
-							GROUP BY anio,departamento) t2 
-						ON t2.departamento=NEW.departamento
-						ORDER BY t1.anho;
-				END IF;
-			ELSE
-                  IF NEW.periodo='2' THEN
-                      UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-                          SET 
-                              estudiantes=(
-                                  SELECT 
-                                      sum(matriculados)/2::numeric(5,0)
-                                  FROM estudiantes_departamento 
-                                  WHERE 
-                                      anho=NEW.anho
-                                  AND 
-                                      departamento=NEW.departamento),
-                              docentes=(
-                                  SELECT 
-                                      sum(t_completo)/2::numeric(3,0)
-                                  FROM formacion_departamento 
-                                  WHERE 
-                                      anio=NEW.anho
-                                  AND 
-                                      departamento=NEW.departamento)
-                          WHERE 
-                              "Anho"=new.anho
-                          AND
-                              departamento=NEW.departamento;
-                      UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-                          SET 
-                              razonanual=(
-                                  SELECT 
-                                      estudiantes/docentes::numeric(3,0)
-                                  FROM 
-                                      "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
-                                  WHERE
-                                      "Anho"=NEW.anho
-                                  AND 
-                                      departamento=NEW.departamento)
-                          WHERE 
-                              "Anho"=new.anho
-                          AND
-                              departamento=NEW.departamento;
-                      UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-                          SET 
-                              razonb=(
-                                  SELECT 
-                                      (2*razonanual-razona)::numeric(3,0)
-                                  FROM 
-                                      "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
-                                  WHERE
-                                      "Anho"=NEW.anho
-                                  AND 
-                                      departamento=NEW.departamento)
-                          WHERE 
-                              "Anho"=new.anho
-                          AND
-                              departamento=NEW.departamento;
-                  END IF;
-			END IF;
-		/*END IF;*/
-	return NEW;
-END;
-$body$
-LANGUAGE plpgsql;
---
--- Definition for function Actua_Estudiantes_Dep (OID = 28658) : 
---
-CREATE FUNCTION public."Actua_Estudiantes_Dep" (
-)
-RETURNS trigger
-AS 
-$body$
-DECLARE
-  cantidad_e INTEGER;
-BEGIN
-  SELECT Count(*) INTO cantidad_e FROM estudiantes_departamento ek WHERE ek.departamento = new.departamento and ek.anho=NEW.anho and ek.periodo=new.periodo;
-	IF cantidad_e > 0 THEN
-    	DELETE  FROM estudiantes_departamento ek WHERE ek.departamento = new.departamento and ek.anho=NEW.anho and ek.periodo=new.periodo;
-   	END IF;  
-   	return new;
-END;
-$body$
-LANGUAGE plpgsql;
---
--- Definition for function Fun_Actua_KPI_Est_Doc_UDENAR (OID = 29071) : 
+-- Definition for function Fun_Actua_KPI_Est_Doc_UDENAR (OID = 19803) : 
 --
 CREATE FUNCTION public."Fun_Actua_KPI_Est_Doc_UDENAR" (
 )
@@ -323,265 +333,144 @@ DECLARE
   cantidad_eu INTEGER;
 BEGIN
 	SELECT Count(*) INTO cantidad_eu FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" ek WHERE ek."Anho"=NEW.anho AND ek.departamento='UD';
-    /*IF NEW.departamento<>'99' THEN*/
-      IF cantidad_eu < 1 THEN
-      	IF NEW.periodo='1' THEN
-          INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razonanual,razona) 
-            SELECT
-            	'UD',
-                t1.anho, 
-                t1.ea::numeric(5,0),
-				t2.da::numeric(3,0),
-				t1.ea/t2.da::numeric(3,0),
-				t1.ea/t2.da::numeric(3,0)
-            FROM ( 
-            	SELECT anho,sum(matriculados) AS ea
-                FROM estudiantes_departamento 
-                WHERE 
-                	periodo=NEW.periodo
-                AND 
-                	anho=NEW.anho
-                GROUP BY anho) t1
-            JOIN ( 
-            	SELECT anio,sum(t_completo) AS da
-                FROM formacion_departamento 
-                WHERE 
-                	periodo=NEW.periodo
-                AND 
-                	anio=NEW.anho
-                GROUP BY anio) t2 
-            ON t2.anio=t1.anho
-            ORDER BY t1.anho;
-        ELSE
-			INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razonb,razonanual) 
-				SELECT
-                	'UD',
-					t1.anho, 
-					t1.eb::numeric(5,0),
-					t2.db::numeric(3,0),
-					t1.eb/t2.db::numeric(3,0),
-					t1.eb/t2.db::numeric(3,0)
-				FROM ( 
-					SELECT anho,matriculados AS eb
-					FROM estudiantes_departamento 
+		IF NEW.departamento<>'99' THEN
+			IF cantidad_eu < 1 THEN
+				IF NEW.periodo='1' THEN
+					INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentestc,docentesoc,razonanual,razona) 
+					SELECT
+						'UD',
+						t1.anho, 
+						t1.ea::numeric(5,0),
+						t2.datc::numeric(3,0),
+						t2.daoc::numeric(3,0),
+						t1.ea/(t2.datc+t2.daoc)::numeric(3,0),
+						t1.ea/(t2.datc+t2.daoc)::numeric(3,0)
+					FROM ( 
+						SELECT anho,sum(matriculados) AS ea
+						FROM estudiantes_departamento 
+						WHERE 
+							periodo=NEW.periodo
+						AND 
+							anho=NEW.anho
+						GROUP BY anho) t1
+					JOIN ( 
+						SELECT anio,sum(t_completo) AS datc,sum(t_ocasional) AS daoc
+						FROM formacion_departamento 
+						WHERE 
+							periodo=NEW.periodo
+						AND 
+							anio=NEW.anho
+						GROUP BY anio) t2 
+					ON t2.anio=t1.anho
+					ORDER BY t1.anho;
+				ELSE
+					INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentestc,docentesoc,razonb,razonanual) 
+						SELECT
+							'UD',
+							t1.anho, 
+							t1.eb::numeric(5,0),
+							t2.dbtc::numeric(3,0),
+							t2.dboc::numeric(3,0),
+							t1.eb/(t2.dbtc+t2.dboc)::numeric(3,0),
+							t1.eb/(t2.dbtc+t2.dboc)::numeric(3,0)
+						FROM ( 
+							SELECT anho,matriculados AS eb
+							FROM estudiantes_departamento 
+							WHERE 
+								periodo = NEW.periodo 
+							AND 
+								anho = NEW.anho
+							GROUP BY anho) t1
+						JOIN ( 
+							SELECT anio,sum(t_completo) AS dbtc,sum(t_ocasional) AS dboc
+							FROM formacion_departamento 
+							WHERE 
+								periodo = NEW.periodo 
+							AND 
+								anio=NEW.anho 
+							GROUP BY anio) t2 
+						ON t2.anio=t1.anho
+						ORDER BY t1.anho;
+				END IF;
+			 ELSE
+				IF NEW.periodo='2' THEN
+					UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+					SET 
+						estudiantes=(
+							SELECT 
+								sum(matriculados)/2::numeric(5,0)
+							FROM estudiantes_departamento 
+							WHERE 
+								anho=NEW.anho),
+						docentestc=(
+							SELECT 
+								(sum(t_completo))/2::numeric(3,0)
+							FROM formacion_departamento 
+							WHERE 
+								anio=NEW.anho),
+                        docentesoc=(
+							SELECT 
+								(sum(t_ocasional))/2::numeric(3,0)
+							FROM formacion_departamento 
+							WHERE 
+								anio=NEW.anho)
 					WHERE 
-						periodo = NEW.periodo 
-					AND 
-						anho = NEW.anho
-                    GROUP BY anho) t1
-				JOIN ( 
-					SELECT anio,sum(t_completo) AS db
-					FROM formacion_departamento 
+						"Anho"=new.anho
+					AND departamento='UD';
+					UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+					SET 
+						razonanual=(
+							SELECT 
+								t1.e/t2.d::numeric(3,0)
+							FROM 
+								(
+								SELECT 
+									anho,
+									sum(matriculados)/2::numeric(5,0) AS e
+								FROM estudiantes_departamento 
+								WHERE 
+									anho=NEW.anho
+								GROUP BY anho) t1
+							JOIN 
+								(
+								SELECT 
+									anio,
+									(sum(t_completo)+sum(t_ocasional))/2::numeric(5,0) AS d
+								FROM formacion_departamento 
+								WHERE 
+									anio=NEW.anho
+								GROUP BY anio) t2
+							ON t1.anho=t2.anio
+							WHERE
+								anio=NEW.anho)
 					WHERE 
-						periodo = NEW.periodo 
+						"Anho"=NEW.anho
 					AND 
-						anio=NEW.anho 
-					GROUP BY anio) t2 
-				ON t2.anio=t1.anho
-				ORDER BY t1.anho;
-        END IF;
-      ELSE
-      	IF NEW.periodo='2' THEN
-        	UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-            SET 
-            	estudiantes=(
-                	SELECT 
-                    	sum(matriculados)/2::numeric(5,0)
-                    FROM estudiantes_departamento 
-                    WHERE 
-                    	anho=NEW.anho),
-                docentes=(
-                	SELECT 
-                    	SUM(t_completo)/2::numeric(3,0)
-                    FROM formacion_departamento 
-            		WHERE 
-            			anio=NEW.anho)
-            WHERE 
-            	"Anho"=new.anho
-            AND departamento='UD';
-			UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-            SET 
-            	razonanual=(
-                	SELECT 
-                        t1.e/t2.d::numeric(3,0)
-                    FROM 
-                        (
-                        SELECT 
-                            anho,
-                            sum(matriculados)/2::numeric(5,0) AS e
-                        FROM estudiantes_departamento 
-                        WHERE 
-                            anho=NEW.anho
-                        GROUP BY anho) t1
-                    JOIN 
-                        (
-                        SELECT 
-                            anio,
-                            sum(t_completo)/2::numeric(5,0) AS d
-                        FROM formacion_departamento 
-                        WHERE 
-                            anio=NEW.anho
-                        GROUP BY anio) t2
-                    ON t1.anho=t2.anio
-                    WHERE
-                        anio=NEW.anho)
-            WHERE 
-            	"Anho"=NEW.anho
-            AND 
-            	departamento='UD';
-            UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-            SET 
-            	razonb=(
-                	SELECT 
-                    	(2*razonanual-razona)::numeric(3,0)
-                    FROM 
-                    	"Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
-                    WHERE
-                    	"Anho"=NEW.anho
-                    AND 
-                    	departamento='UD')
-        	WHERE 
-            	"Anho"=new.anho
-            AND
-                departamento='UD';
-      	END IF;
-            
-      END IF;       
-   /*END IF;*/
-   return NEW;
- END;
- /*JOIN ( 
-            	SELECT anho,SUM(matriculados) AS eb
-                FROM estudiantes_departamento 
-                WHERE 
-                	periodo = NEW.periodo
-                AND 
-                	anho=NEW.anho
-                GROUP BY anho) t3 
-            ON t3.anho = t1.anho
-            JOIN ( 
-            	SELECT anio, SUM(t_completo) AS db
-                FROM formacion_departamento
-                WHERE 
-                	periodo = '2'
-                AND 
-                	anio=NEW.anho
-                GROUP BY anio) t4 
-            ON t1.anho = t4.anio;*/
-$body$
-LANGUAGE plpgsql;
---
--- Definition for function Fun_Actua_KPI_Est_Doc_UDENAR2 (OID = 29144) : 
---
-CREATE FUNCTION public."Fun_Actua_KPI_Est_Doc_UDENAR2" (
-)
-RETURNS trigger
-AS 
-$body$
-DECLARE
-  cantidad_eu INTEGER;
-BEGIN
-	SELECT Count(*) INTO cantidad_eu FROM "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" ek WHERE ek."Anho"=NEW.anho AND ek.departamento='UD';
-    /*IF NEW.departamento<>'99' THEN*/
-    IF cantidad_eu < 1 THEN
-    		INSERT INTO "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (departamento,"Anho",estudiantes,docentes,razona,razonb,razonanual) 
-				SELECT 
-                	'UD',
-                    t1.anho, 
-                    t1.ea::numeric(5,0),
-				    t2.da::numeric(3,0),
-				    (t1.ea / t2.da)::numeric(3,0),
-				    (t3.eb / t4.db)::numeric(3,0),
-				    ((t1.ea+t3.eb)/(t2.da+t4.db))::numeric(3,0)
-			   	FROM ( 
-                	SELECT anho,sum(matriculados) AS ea
-			        FROM estudiantes_departamento 
-                    WHERE 
-                    	periodo='1'
-                    AND 
-                    	anho=NEW."Anho"
-					GROUP BY anho) t1
-				JOIN ( 
-                	SELECT anio,sum(t_completo) AS da
-                    FROM formacion_departamento 
-           			WHERE 
-                    	periodo='1'
-                    AND 
-                    	anio=NEW."Anho"
-                    GROUP BY anio) t2 
-                ON t2.anio=NEW."Anho"
-                FULL JOIN ( 
-                	SELECT anho, SUM(matriculados) AS eb
-			        FROM estudiantes_departamento 
-           			WHERE 
-                    	periodo = '2'
-                    AND 
-                    	anho=NEW."Anho"
-          			GROUP BY anho) t3 
-                ON t3.anho = NEW."Anho"
-     			FULL JOIN ( 
-                	SELECT anio, SUM(t_completo) AS db
-		           	FROM formacion_departamento
-           			WHERE 
-                    	periodo = '2'
-                    AND 
-                    	anio=NEW."Anho"
-          			GROUP BY anio) t4 
-                ON t4.anio = NEW."Anho";
-    ELSE
-    	UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-              SET 
-                  estudiantes=(
-                      SELECT 
-                          sum(matriculados)/2::numeric(5,0)
-                      FROM estudiantes_departamento 
-                      WHERE anho=NEW."Anho"),
-                  docentes=(
-                      SELECT 
-                          sum(t_completo)/2::numeric(3,0)
-                      FROM formacion_departamento 
-                      WHERE anio=NEW."Anho"),
-                  razonb=(
-                      SELECT 
-                        t3.eb/t4.db::numeric(3,0)
-                      FROM ( 
-                          SELECT anho,sum(matriculados) AS eb
-                          FROM estudiantes_departamento 
-                          WHERE 
-                              periodo = '2' 
-                          AND 
-                              anho = NEW."Anho"
-                          GROUP by anho) t3
-                      JOIN ( 
-                          SELECT anio,sum(t_completo) AS db
-                          FROM formacion_departamento 
-                          WHERE 
-                          	periodo = '2' 
-                          AND 
-                          	anio=NEW."Anho" 
-                          GROUP BY anio) t4 
-                      ON t4.anio=NEW."Anho")
-              WHERE 
-                  "Anho"=NEW."Anho";
-          UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
-              SET 
-                  razonanual=(
-                      SELECT 
-                        estudiantes/docentes::numeric(3,0)
-                      FROM 
-                      	"Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
-                      WHERE
-                      	"Anho"=NEW."Anho")
-              WHERE 
-                  "Anho"=NEW."Anho";
-   END IF;
-   /*END IF;*/
-   return NEW;
+						departamento='UD';
+					UPDATE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" 
+					SET 
+						razonb=(
+							SELECT 
+								(2*razonanual-razona)::numeric(3,0)
+							FROM 
+								"Datawarehouse"."KPI_Estudiantes_por_Docentes_TC"
+							WHERE
+								"Anho"=NEW.anho
+							AND 
+								departamento='UD')
+					WHERE 
+						"Anho"=new.anho
+					AND
+						departamento='UD';
+				END IF;
+			END IF;       
+		END IF;
+	return NEW;
  END;
 $body$
 LANGUAGE plpgsql;
 --
--- Structure for table KPI_Acreditacion (OID = 28659) : 
+-- Structure for table KPI_Acreditacion (OID = 19409) : 
 --
 SET search_path = "Datawarehouse", pg_catalog;
 CREATE TABLE "Datawarehouse"."KPI_Acreditacion" (
@@ -593,7 +482,7 @@ CREATE TABLE "Datawarehouse"."KPI_Acreditacion" (
 )
 WITH (oids = false);
 --
--- Structure for table KPI_Desercion_Cohorte (OID = 28663) : 
+-- Structure for table KPI_Desercion_Cohorte (OID = 19413) : 
 --
 CREATE TABLE "Datawarehouse"."KPI_Desercion_Cohorte" (
     programa varchar(6) NOT NULL,
@@ -603,7 +492,7 @@ CREATE TABLE "Datawarehouse"."KPI_Desercion_Cohorte" (
 )
 WITH (oids = false);
 --
--- Structure for table KPI_Desercion_Periodo (OID = 28667) : 
+-- Structure for table KPI_Desercion_Periodo (OID = 19417) : 
 --
 CREATE TABLE "Datawarehouse"."KPI_Desercion_Periodo" (
     programa varchar(6) NOT NULL,
@@ -616,7 +505,21 @@ CREATE TABLE "Datawarehouse"."KPI_Desercion_Periodo" (
 )
 WITH (oids = false);
 --
--- Structure for table KPI_Formacion (OID = 28671) : 
+-- Structure for table KPI_Estudiantes_por_Docentes_TC (OID = 19421) : 
+--
+CREATE TABLE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (
+    departamento char(2) NOT NULL,
+    "Anho" char(4) NOT NULL,
+    estudiantes numeric(5,0) NOT NULL,
+    docentes numeric(3,0) NOT NULL,
+    razonanual numeric(3,0) NOT NULL,
+    razona numeric(3,0) NOT NULL,
+    razonb numeric(3,0) DEFAULT 0,
+    "manual_Estu_Docente" char(3) DEFAULT 5
+)
+WITH (oids = false);
+--
+-- Structure for table KPI_Formacion (OID = 19426) : 
 --
 CREATE TABLE "Datawarehouse"."KPI_Formacion" (
     formacion char(2),
@@ -629,7 +532,7 @@ CREATE TABLE "Datawarehouse"."KPI_Formacion" (
 )
 WITH (oids = false);
 --
--- Structure for table KPI_Nivel_Satisfaccion (OID = 28675) : 
+-- Structure for table KPI_Nivel_Satisfaccion (OID = 19430) : 
 --
 CREATE TABLE "Datawarehouse"."KPI_Nivel_Satisfaccion" (
     "Programa" varchar(6) NOT NULL,
@@ -639,7 +542,7 @@ CREATE TABLE "Datawarehouse"."KPI_Nivel_Satisfaccion" (
 )
 WITH (oids = false);
 --
--- Structure for table KPI_Relacion_Docentes (OID = 28679) : 
+-- Structure for table KPI_Relacion_Docentes (OID = 19434) : 
 --
 CREATE TABLE "Datawarehouse"."KPI_Relacion_Docentes" (
     anio char(5) NOT NULL,
@@ -650,7 +553,7 @@ CREATE TABLE "Datawarehouse"."KPI_Relacion_Docentes" (
 )
 WITH (oids = false);
 --
--- Structure for table acreditacion_alta_calidad (OID = 28683) : 
+-- Structure for table acreditacion_alta_calidad (OID = 19438) : 
 --
 SET search_path = public, pg_catalog;
 CREATE TABLE public.acreditacion_alta_calidad (
@@ -675,7 +578,18 @@ CREATE TABLE public.acreditacion_alta_calidad (
 )
 WITH (oids = false);
 --
--- Structure for table formacion (OID = 28704) : 
+-- Structure for table estudiantes_departamento (OID = 19459) : 
+--
+CREATE TABLE public.estudiantes_departamento (
+    cod_est_dep serial NOT NULL,
+    departamento char(2),
+    matriculados integer,
+    anho char(4),
+    periodo char(1)
+)
+WITH (oids = false);
+--
+-- Structure for table formacion (OID = 19464) : 
 --
 CREATE TABLE public.formacion (
     cod_formacion char(2) NOT NULL,
@@ -683,7 +597,7 @@ CREATE TABLE public.formacion (
 )
 WITH (oids = false);
 --
--- Structure for table formacion_departamento (OID = 28709) : 
+-- Structure for table formacion_departamento (OID = 19467) : 
 --
 CREATE TABLE public.formacion_departamento (
     cod_forma_dep serial NOT NULL,
@@ -697,7 +611,7 @@ CREATE TABLE public.formacion_departamento (
 )
 WITH (oids = false);
 --
--- Structure for table manuales_indicadores (OID = 28713) : 
+-- Structure for table manuales_indicadores (OID = 19472) : 
 --
 CREATE TABLE public.manuales_indicadores (
     codigo char(3) NOT NULL,
@@ -728,7 +642,7 @@ CREATE TABLE public.manuales_indicadores (
 )
 WITH (oids = false);
 --
--- Structure for table programas (OID = 28719) : 
+-- Structure for table programas (OID = 19478) : 
 --
 CREATE TABLE public.programas (
     snies varchar(6) NOT NULL,
@@ -742,7 +656,7 @@ CREATE TABLE public.programas (
 )
 WITH (oids = false);
 --
--- Structure for table users (OID = 28724) : 
+-- Structure for table users (OID = 19483) : 
 --
 CREATE TABLE public.users (
     codigo char(2) NOT NULL,
@@ -753,33 +667,6 @@ CREATE TABLE public.users (
     encriptado varchar(200),
     email varchar NOT NULL,
     alternative_email varchar
-)
-WITH (oids = false);
---
--- Structure for table KPI_Estudiantes_por_Docentes_TC (OID = 28731) : 
---
-SET search_path = "Datawarehouse", pg_catalog;
-CREATE TABLE "Datawarehouse"."KPI_Estudiantes_por_Docentes_TC" (
-    departamento char(2),
-    "Anho" char(4) NOT NULL,
-    estudiantes numeric(5,0) NOT NULL,
-    docentes numeric(3,0) NOT NULL,
-    razonanual numeric(3,0) NOT NULL,
-    razona numeric(3,0) NOT NULL,
-    razonb numeric(3,0) DEFAULT 0,
-    "manual_Estu_Docente" char(3) DEFAULT 5
-)
-WITH (oids = false);
---
--- Structure for table estudiantes_departamento (OID = 28738) : 
---
-SET search_path = public, pg_catalog;
-CREATE TABLE public.estudiantes_departamento (
-    cod_est_dep serial NOT NULL,
-    departamento char(2),
-    matriculados integer,
-    anho char(4),
-    periodo char(1)
 )
 WITH (oids = false);
 SET search_path = "Datawarehouse", pg_catalog;
@@ -1897,6 +1784,8 @@ COPY "KPI_Desercion_Periodo" (programa, periodo, no_graduados, desertores, deser
 1206	2016-1	0	693	7.78	92.22	7  
 1206	2016-2	0	720	7.89	92.11	7  
 \.
+COPY "KPI_Estudiantes_por_Docentes_TC" (departamento, "Anho", estudiantes, docentes, razonanual, razona, razonb, "manual_Estu_Docente") FROM stdin;
+\.
 COPY "KPI_Formacion" (formacion, t_completo, t_ocasional, hora_catedra, anio, "manual_Formacion", estado_meta) FROM stdin;
 1 	47	1	0	2010	2  	71.59
 2 	147	18	37	2010	2  	71.59
@@ -2139,6 +2028,8 @@ COPY acreditacion_alta_calidad (resolucion, programa, inicioacreditacion, period
 13752	783	2015-09-02	4	t	99	0	f	f	t	f	f	f	f	f	f	f	f
 14781	12696	2017-07-28	4	t	99	0	f	f	f	f	f	f	f	f	f	f	f
 9233	6564	2015-06-26	4	t	27	1	t	f	f	f	f	f	f	f	f	f	f
+\.
+COPY estudiantes_departamento (cod_est_dep, departamento, matriculados, anho, periodo) FROM stdin;
 \.
 COPY formacion (cod_formacion, nom_formacion) FROM stdin;
 1 	Doctor
@@ -4221,882 +4112,162 @@ COPY users (codigo, "user", pass, name, rol, encriptado, email, alternative_emai
 11	8d9cf576c5110bbc3c74a5cc5112a51f	8d9cf576c5110bbc3c74a5cc5112a51f	Departamento de Filosofía	0	7f3b7b26a2a1ea13f2760d64ecf1a1c0	filosofia@udenar.edu.co	manrique@udenar.edu.co
 9 	2a0a0798dd43023ab30bdd4a777f4225	7a43bd1709ef441f1b3b3fa71c1175da	Departamento de Comercio Internacional y Mercadeo	0	c1ba95bb040905d1ea4c25d2fbd9768b	cim@udenar.edu.co	\N
 \.
-SET search_path = "Datawarehouse", pg_catalog;
-COPY "KPI_Estudiantes_por_Docentes_TC" (departamento, "Anho", estudiantes, docentes, razonanual, razona, razonb, "manual_Estu_Docente") FROM stdin;
-1 	2010	310	12	26	25	27	5  
-2 	2010	534	9	59	54	64	5  
-3 	2010	275	9	31	29	33	5  
-4 	2010	281	6	47	43	51	5  
-5 	2010	307	10	31	30	32	5  
-6 	2010	245	10	25	28	22	5  
-7 	2010	536	10	54	62	46	5  
-8 	2010	735	5	147	148	146	5  
-9 	2010	254	5	51	0	102	5  
-10	2010	182	6	30	32	28	5  
-11	2010	188	12	16	14	18	5  
-12	2010	0	6	0	0	0	5  
-13	2010	362	16	23	22	24	5  
-14	2010	324	6	54	55	53	5  
-15	2010	215	6	36	39	33	5  
-16	2010	144	5	29	37	21	5  
-17	2010	239	2	120	209	31	5  
-18	2010	369	12	31	56	6	5  
-19	2010	302	10	30	28	32	5  
-20	2010	309	25	12	12	12	5  
-21	2010	129	11	12	12	12	5  
-22	2010	679	8	85	81	89	5  
-23	2010	510	15	34	32	36	5  
-24	2010	522	11	47	49	45	5  
-25	2010	567	9	63	63	63	5  
-26	2010	362	7	52	66	38	5  
-27	2010	516	7	74	73	75	5  
-28	2010	188	8	24	25	23	5  
-29	2010	241	8	30	31	29	5  
-30	2010	184	5	37	33	41	5  
-UD	2010	10004	268	37	37	37	5  
-1 	2011	340	12	28	28	28	5  
-2 	2011	552	9	61	58	64	5  
-3 	2011	278	8	35	37	33	5  
-4 	2011	294	6	49	46	52	5  
-5 	2011	272	10	27	25	29	5  
-6 	2011	280	10	28	28	28	5  
-7 	2011	488	10	49	51	47	5  
-8 	2011	733	5	147	147	147	5  
-9 	2011	439	4	110	108	112	5  
-10	2011	186	6	31	35	27	5  
-11	2011	216	11	20	18	22	5  
-12	2011	0	6	0	0	0	5  
-13	2011	394	16	25	24	26	5  
-14	2011	317	6	53	54	52	5  
-15	2011	247	7	35	32	38	5  
-16	2011	132	5	26	28	24	5  
-17	2011	254	2	127	117	137	5  
-18	2011	142	12	12	15	9	5  
-19	2011	320	10	32	31	33	5  
-20	2011	350	25	14	14	14	5  
-21	2011	146	11	13	15	11	5  
-22	2011	684	9	76	85	67	5  
-23	2011	609	15	41	39	43	5  
-24	2011	496	11	45	47	43	5  
-25	2011	530	9	59	58	60	5  
-26	2011	357	7	51	52	50	5  
-27	2011	501	7	72	77	67	5  
-28	2011	203	8	25	27	23	5  
-29	2011	271	8	34	36	32	5  
-30	2011	190	5	38	34	42	5  
-UD	2011	10289	267	39	38	40	5  
-1 	2012	366	12	31	30	32	5  
-2 	2012	548	9	61	56	66	5  
-3 	2012	260	8	33	28	38	5  
-4 	2012	302	6	50	48	52	5  
-5 	2012	270	10	27	26	28	5  
-6 	2012	332	10	33	34	32	5  
-7 	2012	459	9	51	54	48	5  
-8 	2012	743	5	149	156	142	5  
-9 	2012	458	4	115	113	117	5  
-10	2012	183	5	37	39	35	5  
-11	2012	207	10	21	21	21	5  
-12	2012	200	5	40	43	37	5  
-13	2012	431	15	29	28	30	5  
-14	2012	318	7	45	48	42	5  
-15	2012	242	7	35	32	38	5  
-16	2012	138	5	28	29	27	5  
-17	2012	259	2	130	128	132	5  
-18	2012	132	12	11	13	9	5  
-19	2012	109	10	11	9	13	5  
-20	2012	385	25	15	15	15	5  
-21	2012	153	11	14	15	13	5  
-22	2012	668	9	74	73	75	5  
-23	2012	647	15	43	43	43	5  
-24	2012	478	11	43	45	41	5  
-25	2012	578	9	64	65	63	5  
-26	2012	354	8	44	47	41	5  
-27	2012	489	7	70	74	66	5  
-28	2012	208	8	26	28	24	5  
-29	2012	257	8	32	34	30	5  
-30	2012	202	5	40	38	42	5  
-UD	2012	10471	267	39	39	39	5  
-1 	2013	383	12	32	32	32	5  
-2 	2013	559	10	56	58	54	5  
-3 	2013	326	8	41	40	42	5  
-4 	2013	305	6	51	50	52	5  
-5 	2013	238	11	22	23	21	5  
-6 	2013	360	11	33	35	31	5  
-7 	2013	399	9	44	45	43	5  
-8 	2013	703	5	141	142	140	5  
-9 	2013	457	4	114	112	116	5  
-10	2013	189	5	38	40	36	5  
-11	2013	196	11	18	18	18	5  
-12	2013	213	5	43	45	41	5  
-13	2013	440	15	29	29	29	5  
-14	2013	295	7	42	44	40	5  
-15	2013	244	7	35	32	38	5  
-16	2013	118	5	24	25	23	5  
-17	2013	256	2	128	118	138	5  
-18	2013	128	12	11	12	10	5  
-19	2013	122	10	12	10	14	5  
-20	2013	417	26	16	17	15	5  
-21	2013	161	11	15	16	14	5  
-22	2013	664	9	74	69	79	5  
-23	2013	637	15	42	45	39	5  
-24	2013	521	11	47	47	47	5  
-25	2013	538	10	54	60	48	5  
-26	2013	338	8	42	45	39	5  
-27	2013	433	7	62	65	59	5  
-28	2013	211	8	26	28	24	5  
-29	2013	250	8	31	33	29	5  
-30	2013	189	5	38	35	41	5  
-UD	2013	10398	268	39	39	39	5  
-1 	2014	390	11	35	32	38	5  
-2 	2014	541	10	54	53	55	5  
-3 	2014	316	7	45	42	48	5  
-4 	2014	338	6	56	54	58	5  
-5 	2014	236	11	21	20	22	5  
-6 	2014	447	11	41	44	38	5  
-7 	2014	385	9	43	46	40	5  
-8 	2014	691	5	138	136	140	5  
-9 	2014	463	4	116	112	120	5  
-10	2014	195	5	39	41	37	5  
-11	2014	219	18	12	18	6	5  
-12	2014	229	5	46	46	46	5  
-13	2014	476	7	68	33	103	5  
-14	2014	288	8	36	43	29	5  
-15	2014	257	7	37	34	40	5  
-16	2014	138	5	28	29	27	5  
-17	2014	266	2	133	125	141	5  
-18	2014	124	13	10	12	8	5  
-19	2014	120	11	11	10	12	5  
-20	2014	417	26	16	16	16	5  
-21	2014	165	10	17	18	16	5  
-22	2014	695	10	70	75	65	5  
-23	2014	613	15	41	42	40	5  
-24	2014	538	11	49	50	48	5  
-25	2014	559	10	56	58	54	5  
-26	2014	320	7	46	48	44	5  
-27	2014	444	7	63	67	59	5  
-28	2014	208	8	26	27	25	5  
-29	2014	247	8	31	33	29	5  
-30	2014	190	6	32	35	29	5  
-UD	2014	10741	269	40	40	40	5  
-1 	2015	408	11	37	42	32	5  
-2 	2015	543	10	54	50	58	5  
-3 	2015	353	7	50	45	55	5  
-4 	2015	340	7	49	52	46	5  
-5 	2015	227	11	21	18	24	5  
-6 	2015	554	11	50	49	51	5  
-7 	2015	335	10	34	40	28	5  
-8 	2015	677	6	113	143	83	5  
-9 	2015	494	3	165	161	169	5  
-10	2015	212	6	35	44	26	5  
-11	2015	257	11	23	21	25	5  
-12	2015	250	4	63	68	58	5  
-13	2015	509	14	36	36	36	5  
-14	2015	295	8	37	39	35	5  
-15	2015	234	6	39	42	36	5  
-16	2015	163	5	33	37	29	5  
-17	2015	291	2	146	135	157	5  
-18	2015	142	13	11	12	10	5  
-19	2015	107	11	10	10	10	5  
-20	2015	430	27	16	16	16	5  
-21	2015	185	11	17	21	13	5  
-22	2015	724	11	66	68	64	5  
-23	2015	659	13	51	49	53	5  
-24	2015	585	11	53	56	50	5  
-25	2015	572	10	57	61	53	5  
-26	2015	318	7	45	49	41	5  
-27	2015	416	8	52	65	39	5  
-28	2015	223	8	28	32	24	5  
-29	2015	256	7	37	39	35	5  
-30	2015	207	6	35	31	39	5  
-UD	2015	11120	270	41	42	40	5  
-1 	2016	373	11	34	33	35	5  
-2 	2016	557	10	56	51	61	5  
-3 	2016	305	8	38	36	40	5  
-4 	2016	344	7	49	47	51	5  
-5 	2016	245	10	25	23	27	5  
-6 	2016	653	11	59	59	59	5  
-7 	2016	352	8	44	42	46	5  
-8 	2016	639	7	91	85	97	5  
-9 	2016	526	3	175	167	183	5  
-10	2016	225	6	38	41	35	5  
-11	2016	252	10	25	24	26	5  
-12	2016	251	3	84	87	81	5  
-13	2016	532	17	31	31	31	5  
-14	2016	308	8	39	39	39	5  
-15	2016	248	6	41	38	44	5  
-16	2016	172	3	57	66	48	5  
-17	2016	312	2	156	148	164	5  
-18	2016	148	13	11	13	9	5  
-19	2016	121	11	11	8	14	5  
-20	2016	451	27	17	17	17	5  
-21	2016	182	12	15	17	13	5  
-22	2016	734	9	82	66	98	5  
-23	2016	717	12	60	60	60	5  
-24	2016	610	11	55	58	52	5  
-25	2016	568	10	57	62	52	5  
-26	2016	299	7	43	45	41	5  
-27	2016	450	8	56	60	52	5  
-28	2016	237	8	30	31	29	5  
-29	2016	258	7	37	39	35	5  
-30	2016	198	6	33	29	37	5  
-UD	2016	11349	270	42	41	43	5  
-1 	2017	419	11	38	38	0	5  
-UD	2017	11730	266	44	44	0	5  
-2 	2017	500	9	56	56	0	5  
-3 	2017	311	8	39	39	0	5  
-4 	2017	324	6	54	54	0	5  
-5 	2017	241	10	24	24	0	5  
-6 	2017	692	11	63	63	0	5  
-7 	2017	370	8	46	46	0	5  
-8 	2017	657	6	110	110	0	5  
-9 	2017	541	3	180	180	0	5  
-10	2017	251	6	42	42	0	5  
-11	2017	238	10	24	24	0	5  
-12	2017	293	3	98	98	0	5  
-13	2017	528	17	31	31	0	5  
-14	2017	335	7	48	48	0	5  
-15	2017	302	6	50	50	0	5  
-16	2017	186	3	62	62	0	5  
-17	2017	291	2	146	146	0	5  
-18	2017	163	13	13	13	0	5  
-19	2017	96	11	9	9	0	5  
-20	2017	462	27	17	17	0	5  
-21	2017	196	12	16	16	0	5  
-22	2017	765	8	96	96	0	5  
-23	2017	775	12	65	65	0	5  
-24	2017	659	11	60	60	0	5  
-25	2017	622	10	62	62	0	5  
-26	2017	317	7	45	45	0	5  
-27	2017	478	8	60	60	0	5  
-28	2017	265	7	38	38	0	5  
-29	2017	275	8	34	34	0	5  
-30	2017	178	6	30	30	0	5  
-\.
-SET search_path = public, pg_catalog;
-COPY estudiantes_departamento (cod_est_dep, departamento, matriculados, anho, periodo) FROM stdin;
-120740	1 	300	2010	1
-120741	2 	488	2010	1
-120742	3 	260	2010	1
-120743	4 	259	2010	1
-120744	5 	301	2010	1
-120745	6 	248	2010	1
-120746	7 	556	2010	1
-120747	8 	740	2010	1
-120748	9 	0	2010	1
-120749	10	191	2010	1
-120750	11	170	2010	1
-120751	12	0	2010	1
-120752	13	352	2010	1
-120753	14	331	2010	1
-120754	15	196	2010	1
-120755	16	148	2010	1
-120756	17	209	2010	1
-120757	18	621	2010	1
-120758	19	278	2010	1
-120759	20	291	2010	1
-120760	21	135	2010	1
-120761	22	651	2010	1
-120762	23	477	2010	1
-120763	24	537	2010	1
-120764	25	571	2010	1
-120765	26	393	2010	1
-120766	27	513	2010	1
-120767	28	199	2010	1
-120768	29	247	2010	1
-120769	30	166	2010	1
-120770	99	0	2010	1
-120771	1 	320	2010	2
-120772	2 	580	2010	2
-120773	3 	290	2010	2
-120774	4 	302	2010	2
-120775	5 	312	2010	2
-120776	6 	241	2010	2
-120777	7 	516	2010	2
-120778	8 	730	2010	2
-120779	9 	507	2010	2
-120780	10	173	2010	2
-120781	11	206	2010	2
-120782	12	0	2010	2
-120783	13	372	2010	2
-120784	14	316	2010	2
-120785	15	233	2010	2
-120786	16	140	2010	2
-120787	17	268	2010	2
-120788	18	117	2010	2
-120789	19	325	2010	2
-120790	20	326	2010	2
-120791	21	123	2010	2
-120792	22	707	2010	2
-120793	23	543	2010	2
-120794	24	507	2010	2
-120795	25	563	2010	2
-120796	26	331	2010	2
-120797	27	518	2010	2
-120798	28	176	2010	2
-120799	29	235	2010	2
-120800	30	202	2010	2
-120801	99	0	2010	2
-120802	1 	332	2011	1
-120803	2 	519	2011	1
-120804	3 	259	2011	1
-120805	4 	273	2011	1
-120806	5 	252	2011	1
-120807	6 	275	2011	1
-120808	7 	512	2011	1
-120809	8 	736	2011	1
-120810	9 	432	2011	1
-120811	10	207	2011	1
-120812	11	196	2011	1
-120813	12	0	2011	1
-120814	13	387	2011	1
-120815	14	324	2011	1
-120816	15	222	2011	1
-120817	16	141	2011	1
-120818	17	234	2011	1
-120819	18	160	2011	1
-120820	19	310	2011	1
-120821	20	340	2011	1
-120822	21	162	2011	1
-120823	22	679	2011	1
-120824	23	588	2011	1
-120825	24	522	2011	1
-120826	25	525	2011	1
-120827	26	367	2011	1
-120828	27	538	2011	1
-120829	28	214	2011	1
-120830	29	284	2011	1
-120831	30	171	2011	1
-120832	99	0	2011	1
-120833	1 	347	2011	2
-120834	2 	584	2011	2
-120835	3 	296	2011	2
-120836	4 	315	2011	2
-120837	5 	292	2011	2
-120838	6 	285	2011	2
-120839	7 	463	2011	2
-120840	8 	729	2011	2
-120841	9 	446	2011	2
-120842	10	165	2011	2
-120843	11	235	2011	2
-120844	12	0	2011	2
-120845	13	400	2011	2
-120846	14	310	2011	2
-120847	15	271	2011	2
-120848	16	123	2011	2
-120849	17	274	2011	2
-120850	18	123	2011	2
-120851	19	329	2011	2
-120852	20	359	2011	2
-120853	21	129	2011	2
-120854	22	689	2011	2
-120855	23	629	2011	2
-120856	24	469	2011	2
-120857	25	535	2011	2
-120858	26	346	2011	2
-120859	27	464	2011	2
-120860	28	192	2011	2
-120861	29	257	2011	2
-120862	30	208	2011	2
-120863	99	152	2011	2
-120864	1 	356	2012	1
-120865	2 	508	2012	1
-120866	3 	226	2012	1
-120867	4 	289	2012	1
-120868	5 	258	2012	1
-120869	6 	337	2012	1
-120870	7 	484	2012	1
-120871	8 	780	2012	1
-120872	9 	453	2012	1
-120873	10	193	2012	1
-120874	11	207	2012	1
-120875	12	215	2012	1
-120876	13	424	2012	1
-120877	14	337	2012	1
-120878	15	226	2012	1
-120879	16	143	2012	1
-120880	17	256	2012	1
-120881	18	152	2012	1
-120882	19	88	2012	1
-120883	20	365	2012	1
-120884	21	170	2012	1
-120885	22	656	2012	1
-120886	23	638	2012	1
-120887	24	498	2012	1
-120888	25	589	2012	1
-120889	26	375	2012	1
-120890	27	519	2012	1
-120891	28	224	2012	1
-120892	29	275	2012	1
-120893	30	189	2012	1
-120894	99	30	2012	1
-120895	1 	375	2012	2
-120896	2 	588	2012	2
-120897	3 	294	2012	2
-120898	4 	315	2012	2
-120899	5 	281	2012	2
-120900	6 	326	2012	2
-120901	7 	433	2012	2
-120902	8 	705	2012	2
-120903	9 	462	2012	2
-120904	10	173	2012	2
-120905	11	206	2012	2
-120906	12	184	2012	2
-120907	13	438	2012	2
-120908	14	298	2012	2
-120909	15	258	2012	2
-120910	16	132	2012	2
-120911	17	262	2012	2
-120912	18	112	2012	2
-120913	19	130	2012	2
-120914	20	405	2012	2
-120915	21	135	2012	2
-120916	22	679	2012	2
-120917	23	655	2012	2
-120918	24	458	2012	2
-120919	25	566	2012	2
-120920	26	333	2012	2
-120921	27	458	2012	2
-120922	28	192	2012	2
-120923	29	239	2012	2
-120924	30	215	2012	2
-120925	99	174	2012	2
-120926	1 	383	2013	1
-120927	2 	525	2013	1
-120928	3 	317	2013	1
-120929	4 	302	2013	1
-120930	5 	227	2013	1
-120931	6 	351	2013	1
-120932	7 	406	2013	1
-120933	8 	711	2013	1
-120934	9 	449	2013	1
-120935	10	200	2013	1
-120936	11	175	2013	1
-120937	12	224	2013	1
-120938	13	437	2013	1
-120939	14	309	2013	1
-120940	15	226	2013	1
-120941	16	124	2013	1
-120942	17	236	2013	1
-120943	18	140	2013	1
-120944	19	100	2013	1
-120945	20	429	2013	1
-120946	21	174	2013	1
-120947	22	624	2013	1
-120948	23	623	2013	1
-120949	24	512	2013	1
-120950	25	537	2013	1
-120951	26	358	2013	1
-120952	27	456	2013	1
-120953	28	227	2013	1
-120954	29	267	2013	1
-120955	30	175	2013	1
-120956	99	124	2013	1
-120957	1 	382	2013	2
-120958	2 	593	2013	2
-120959	3 	335	2013	2
-120960	4 	307	2013	2
-120961	5 	248	2013	2
-120962	6 	368	2013	2
-120963	7 	391	2013	2
-120964	8 	694	2013	2
-120965	9 	464	2013	2
-120966	10	177	2013	2
-120967	11	216	2013	2
-120968	12	201	2013	2
-120969	13	443	2013	2
-120970	14	281	2013	2
-120971	15	262	2013	2
-120972	16	112	2013	2
-120973	17	275	2013	2
-120974	18	115	2013	2
-120975	19	143	2013	2
-120976	20	405	2013	2
-120977	21	147	2013	2
-120978	22	703	2013	2
-120979	23	650	2013	2
-120980	24	529	2013	2
-120981	25	539	2013	2
-120982	26	318	2013	2
-120983	27	409	2013	2
-120984	28	195	2013	2
-120985	29	232	2013	2
-120986	30	202	2013	2
-120987	99	111	2013	2
-120988	1 	386	2014	1
-120989	2 	534	2014	1
-120990	3 	297	2014	1
-120991	4 	323	2014	1
-120992	5 	225	2014	1
-120993	6 	436	2014	1
-120994	7 	412	2014	1
-120995	8 	682	2014	1
-120996	9 	448	2014	1
-120997	10	206	2014	1
-120998	11	195	2014	1
-120999	12	231	2014	1
-121000	13	468	2014	1
-121001	14	304	2014	1
-121002	15	235	2014	1
-121003	16	147	2014	1
-121004	17	249	2014	1
-121005	18	139	2014	1
-121006	19	99	2014	1
-121007	20	416	2014	1
-121008	21	183	2014	1
-121009	22	678	2014	1
-121010	23	636	2014	1
-121011	24	555	2014	1
-121012	25	580	2014	1
-121013	26	337	2014	1
-121014	27	472	2014	1
-121015	28	216	2014	1
-121016	29	261	2014	1
-121017	30	174	2014	1
-121018	99	230	2014	1
-121019	1 	394	2014	2
-121020	2 	548	2014	2
-121021	3 	334	2014	2
-121022	4 	353	2014	2
-121023	5 	246	2014	2
-121024	6 	457	2014	2
-121025	7 	357	2014	2
-121026	8 	699	2014	2
-121027	9 	477	2014	2
-121028	10	183	2014	2
-121029	11	243	2014	2
-121030	12	227	2014	2
-121031	13	483	2014	2
-121032	14	272	2014	2
-121033	15	279	2014	2
-121034	16	128	2014	2
-121035	17	282	2014	2
-121036	18	108	2014	2
-121037	19	140	2014	2
-121038	20	417	2014	2
-121039	21	147	2014	2
-121040	22	711	2014	2
-121041	23	589	2014	2
-121042	24	521	2014	2
-121043	25	537	2014	2
-121044	26	302	2014	2
-121045	27	416	2014	2
-121046	28	200	2014	2
-121047	29	233	2014	2
-121048	30	205	2014	2
-121049	99	240	2014	2
-121050	1 	420	2015	1
-121051	2 	504	2015	1
-121052	3 	314	2015	1
-121053	4 	314	2015	1
-121054	5 	203	2015	1
-121055	6 	544	2015	1
-121056	7 	359	2015	1
-121057	8 	714	2015	1
-121058	9 	483	2015	1
-121059	10	218	2015	1
-121060	11	231	2015	1
-121061	12	273	2015	1
-121062	13	499	2015	1
-121063	14	312	2015	1
-121064	15	253	2015	1
-121065	16	186	2015	1
-121066	17	270	2015	1
-121067	18	157	2015	1
-121068	19	113	2015	1
-121069	20	427	2015	1
-121070	21	209	2015	1
-121071	22	684	2015	1
-121072	23	642	2015	1
-121073	24	612	2015	1
-121074	25	605	2015	1
-121075	26	345	2015	1
-121076	27	455	2015	1
-121077	28	254	2015	1
-121078	29	272	2015	1
-121079	30	186	2015	1
-121080	99	223	2015	1
-121081	1 	396	2015	2
-121082	2 	582	2015	2
-121083	3 	391	2015	2
-121084	4 	366	2015	2
-121085	5 	251	2015	2
-121086	6 	564	2015	2
-121087	7 	311	2015	2
-121088	8 	639	2015	2
-121089	9 	505	2015	2
-121090	10	205	2015	2
-121091	11	282	2015	2
-121092	12	227	2015	2
-121093	13	519	2015	2
-121094	14	277	2015	2
-121095	15	214	2015	2
-121096	16	139	2015	2
-121097	17	312	2015	2
-121098	18	126	2015	2
-121099	19	101	2015	2
-121100	20	433	2015	2
-121101	21	161	2015	2
-121102	22	763	2015	2
-121103	23	675	2015	2
-121104	24	558	2015	2
-121105	25	538	2015	2
-121106	26	291	2015	2
-121107	27	377	2015	2
-121108	28	192	2015	2
-121109	29	240	2015	2
-121110	30	228	2015	2
-121111	99	96	2015	2
-121112	1 	363	2016	1
-121113	2 	509	2016	1
-121114	3 	284	2016	1
-121115	4 	331	2016	1
-121116	5 	229	2016	1
-121117	6 	649	2016	1
-121118	7 	339	2016	1
-121119	8 	598	2016	1
-121120	9 	500	2016	1
-121121	10	248	2016	1
-121122	11	241	2016	1
-121123	12	262	2016	1
-121124	13	533	2016	1
-121125	14	314	2016	1
-121126	15	228	2016	1
-121127	16	197	2016	1
-121128	17	295	2016	1
-121129	18	167	2016	1
-121130	19	93	2016	1
-121131	20	453	2016	1
-121132	21	203	2016	1
-121133	22	661	2016	1
-121134	23	724	2016	1
-121135	24	634	2016	1
-121136	25	618	2016	1
-121137	26	316	2016	1
-121138	27	479	2016	1
-121139	28	248	2016	1
-121140	29	275	2016	1
-121141	30	172	2016	1
-121142	99	122	2016	1
-121143	1 	382	2016	2
-121144	2 	604	2016	2
-121145	3 	326	2016	2
-121146	4 	356	2016	2
-121147	5 	260	2016	2
-121148	6 	656	2016	2
-121149	7 	364	2016	2
-121150	8 	680	2016	2
-121151	9 	552	2016	2
-121152	10	202	2016	2
-121153	11	263	2016	2
-121154	12	240	2016	2
-121155	13	530	2016	2
-121156	14	302	2016	2
-121157	15	268	2016	2
-121158	16	147	2016	2
-121159	17	328	2016	2
-121160	18	128	2016	2
-121161	19	148	2016	2
-121162	20	449	2016	2
-121163	21	160	2016	2
-121164	22	806	2016	2
-121165	23	709	2016	2
-121166	24	586	2016	2
-121167	25	517	2016	2
-121168	26	282	2016	2
-121169	27	421	2016	2
-121170	28	226	2016	2
-121171	29	240	2016	2
-121172	30	224	2016	2
-121173	99	57	2016	2
-121174	1 	419	2017	1
-121175	2 	500	2017	1
-121176	3 	311	2017	1
-121177	4 	324	2017	1
-121178	5 	241	2017	1
-121179	6 	692	2017	1
-121180	7 	370	2017	1
-121181	8 	657	2017	1
-121182	9 	541	2017	1
-121183	10	251	2017	1
-121184	11	238	2017	1
-121185	12	293	2017	1
-121186	13	528	2017	1
-121187	14	335	2017	1
-121188	15	302	2017	1
-121189	16	186	2017	1
-121190	17	291	2017	1
-121191	18	163	2017	1
-121192	19	96	2017	1
-121193	20	462	2017	1
-121194	21	196	2017	1
-121195	22	765	2017	1
-121196	23	775	2017	1
-121197	24	659	2017	1
-121198	25	622	2017	1
-121199	26	317	2017	1
-121200	27	478	2017	1
-121201	28	265	2017	1
-121202	29	275	2017	1
-121203	30	178	2017	1
-\.
 --
--- Definition for index KPI_Desercion_Cohorte_idx (OID = 28742) : 
+-- Definition for index KPI_Desercion_Cohorte_idx (OID = 19492) : 
 --
 SET search_path = "Datawarehouse", pg_catalog;
 ALTER TABLE ONLY "KPI_Desercion_Cohorte"
     ADD CONSTRAINT "KPI_Desercion_Cohorte_idx"
     PRIMARY KEY (programa, periodo);
 --
--- Definition for index KPI_Desercion_Periodo_idx (OID = 28744) : 
+-- Definition for index KPI_Desercion_Periodo_idx (OID = 19494) : 
 --
 ALTER TABLE ONLY "KPI_Desercion_Periodo"
     ADD CONSTRAINT "KPI_Desercion_Periodo_idx"
     PRIMARY KEY (programa, periodo);
 --
--- Definition for index KPI_Nivel_Satisfaccion_pkey (OID = 28746) : 
+-- Definition for index KPI_Nivel_Satisfaccion_pkey (OID = 19496) : 
 --
 ALTER TABLE ONLY "KPI_Nivel_Satisfaccion"
     ADD CONSTRAINT "KPI_Nivel_Satisfaccion_pkey"
     PRIMARY KEY ("Programa", "Anho");
 --
--- Definition for index acreditacion_alta_calidad_pkey (OID = 28748) : 
+-- Definition for index acreditacion_alta_calidad_pkey (OID = 19498) : 
 --
 SET search_path = public, pg_catalog;
 ALTER TABLE ONLY acreditacion_alta_calidad
     ADD CONSTRAINT acreditacion_alta_calidad_pkey
     PRIMARY KEY (resolucion);
 --
--- Definition for index formacion_departamento_pkey (OID = 28750) : 
+-- Definition for index formacion_departamento_pkey (OID = 19500) : 
 --
 ALTER TABLE ONLY formacion_departamento
     ADD CONSTRAINT formacion_departamento_pkey
     PRIMARY KEY (cod_forma_dep);
 --
--- Definition for index formacion_pkey (OID = 28752) : 
+-- Definition for index formacion_pkey (OID = 19502) : 
 --
 ALTER TABLE ONLY formacion
     ADD CONSTRAINT formacion_pkey
     PRIMARY KEY (cod_formacion);
 --
--- Definition for index manuales_indicadores_pkey (OID = 28754) : 
+-- Definition for index manuales_indicadores_pkey (OID = 19504) : 
 --
 ALTER TABLE ONLY manuales_indicadores
     ADD CONSTRAINT manuales_indicadores_pkey
     PRIMARY KEY (codigo);
 --
--- Definition for index programas_pkey (OID = 28756) : 
+-- Definition for index programas_pkey (OID = 19506) : 
 --
 ALTER TABLE ONLY programas
     ADD CONSTRAINT programas_pkey
     PRIMARY KEY (snies);
 --
--- Definition for index users_codigo_key (OID = 28758) : 
+-- Definition for index users_codigo_key (OID = 19508) : 
 --
 ALTER TABLE ONLY users
     ADD CONSTRAINT users_codigo_key
     UNIQUE (codigo);
 --
--- Definition for index users_pkey (OID = 28760) : 
+-- Definition for index users_pkey (OID = 19510) : 
 --
 ALTER TABLE ONLY users
     ADD CONSTRAINT users_pkey
     PRIMARY KEY ("user", pass);
 --
--- Definition for index KPI_Acreditacion_fk (OID = 28762) : 
+-- Definition for index KPI_Acreditacion_fk (OID = 19520) : 
 --
 SET search_path = "Datawarehouse", pg_catalog;
 ALTER TABLE ONLY "KPI_Acreditacion"
     ADD CONSTRAINT "KPI_Acreditacion_fk"
     FOREIGN KEY ("manual_Acredita") REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Cohort_Dropout_fk (OID = 28767) : 
+-- Definition for index KPI_Cohort_Dropout_fk (OID = 19525) : 
 --
 ALTER TABLE ONLY "KPI_Desercion_Cohorte"
     ADD CONSTRAINT "KPI_Cohort_Dropout_fk"
     FOREIGN KEY (programa) REFERENCES public.programas(snies);
 --
--- Definition for index KPI_Desercion_Cohorte_fk (OID = 28772) : 
+-- Definition for index KPI_Desercion_Cohorte_fk (OID = 19530) : 
 --
 ALTER TABLE ONLY "KPI_Desercion_Cohorte"
     ADD CONSTRAINT "KPI_Desercion_Cohorte_fk"
     FOREIGN KEY (manual) REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Desercion_Periodo_fk (OID = 28777) : 
+-- Definition for index KPI_Desercion_Periodo_fk (OID = 19535) : 
 --
 ALTER TABLE ONLY "KPI_Desercion_Periodo"
     ADD CONSTRAINT "KPI_Desercion_Periodo_fk"
     FOREIGN KEY (manual) REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Formacion_fk (OID = 28782) : 
+-- Definition for index KPI_Estudiantes_por_Docentes_TC_fk (OID = 19540) : 
+--
+ALTER TABLE ONLY "KPI_Estudiantes_por_Docentes_TC"
+    ADD CONSTRAINT "KPI_Estudiantes_por_Docentes_TC_fk"
+    FOREIGN KEY ("manual_Estu_Docente") REFERENCES public.manuales_indicadores(codigo);
+--
+-- Definition for index KPI_Formacion_fk (OID = 19550) : 
 --
 ALTER TABLE ONLY "KPI_Formacion"
     ADD CONSTRAINT "KPI_Formacion_fk"
     FOREIGN KEY (formacion) REFERENCES public.formacion(cod_formacion);
 --
--- Definition for index KPI_Formacion_fk1 (OID = 28787) : 
+-- Definition for index KPI_Formacion_fk1 (OID = 19555) : 
 --
 ALTER TABLE ONLY "KPI_Formacion"
     ADD CONSTRAINT "KPI_Formacion_fk1"
     FOREIGN KEY ("manual_Formacion") REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Nivel_Satisfaccion_fk (OID = 28792) : 
+-- Definition for index KPI_Nivel_Satisfaccion_fk (OID = 19560) : 
 --
 ALTER TABLE ONLY "KPI_Nivel_Satisfaccion"
     ADD CONSTRAINT "KPI_Nivel_Satisfaccion_fk"
     FOREIGN KEY (manual) REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Period_Dropout_fk (OID = 28797) : 
+-- Definition for index KPI_Period_Dropout_fk (OID = 19565) : 
 --
 ALTER TABLE ONLY "KPI_Desercion_Periodo"
     ADD CONSTRAINT "KPI_Period_Dropout_fk"
     FOREIGN KEY (programa) REFERENCES public.programas(snies);
 --
--- Definition for index KPI_Relacion_Docentes_fk (OID = 28802) : 
+-- Definition for index KPI_Relacion_Docentes_fk (OID = 19570) : 
 --
 ALTER TABLE ONLY "KPI_Relacion_Docentes"
     ADD CONSTRAINT "KPI_Relacion_Docentes_fk"
     FOREIGN KEY ("manual_Rela") REFERENCES public.manuales_indicadores(codigo);
 --
--- Definition for index KPI_Satisfaction_level_fk (OID = 28807) : 
+-- Definition for index KPI_Satisfaction_level_fk (OID = 19575) : 
 --
 ALTER TABLE ONLY "KPI_Nivel_Satisfaccion"
     ADD CONSTRAINT "KPI_Satisfaction_level_fk"
     FOREIGN KEY ("Programa") REFERENCES public.programas(snies);
 --
--- Definition for index acreditacion_alta_calidad_fk (OID = 28812) : 
+-- Definition for index acreditacion_alta_calidad_fk (OID = 19580) : 
 --
 SET search_path = public, pg_catalog;
 ALTER TABLE ONLY acreditacion_alta_calidad
     ADD CONSTRAINT acreditacion_alta_calidad_fk
     FOREIGN KEY (programa) REFERENCES programas(snies);
 --
--- Definition for index formacion_departamento_fk (OID = 28817) : 
+-- Definition for index estudiantes_departamento_fk (OID = 19585) : 
+--
+ALTER TABLE ONLY estudiantes_departamento
+    ADD CONSTRAINT estudiantes_departamento_fk
+    FOREIGN KEY (departamento) REFERENCES users(codigo);
+--
+-- Definition for index formacion_departamento_fk (OID = 19590) : 
 --
 ALTER TABLE ONLY formacion_departamento
     ADD CONSTRAINT formacion_departamento_fk
     FOREIGN KEY (departamento) REFERENCES users(codigo);
 --
--- Definition for index formacion_fk (OID = 28822) : 
+-- Definition for index formacion_fk (OID = 19595) : 
 --
 ALTER TABLE ONLY formacion_departamento
     ADD CONSTRAINT formacion_fk
     FOREIGN KEY (formacion) REFERENCES formacion(cod_formacion);
 --
--- Definition for index KPI_Estudiantes_por_Docentes_TC_fk (OID = 28827) : 
---
-SET search_path = "Datawarehouse", pg_catalog;
-ALTER TABLE ONLY "KPI_Estudiantes_por_Docentes_TC"
-    ADD CONSTRAINT "KPI_Estudiantes_por_Docentes_TC_fk"
-    FOREIGN KEY ("manual_Estu_Docente") REFERENCES public.manuales_indicadores(codigo);
---
--- Definition for index estudiantes_departamento_fk (OID = 29122) : 
---
-SET search_path = public, pg_catalog;
-ALTER TABLE ONLY estudiantes_departamento
-    ADD CONSTRAINT estudiantes_departamento_fk
-    FOREIGN KEY (departamento) REFERENCES users(codigo);
---
--- Definition for trigger tr_actua_satisfaccion (OID = 28842) : 
+-- Definition for trigger tr_actua_satisfaccion (OID = 19512) : 
 --
 SET search_path = "Datawarehouse", pg_catalog;
 CREATE TRIGGER tr_actua_satisfaccion
@@ -5104,70 +4275,70 @@ CREATE TRIGGER tr_actua_satisfaccion
     FOR EACH ROW
     EXECUTE PROCEDURE public.fun_actua_satisfaccion ();
 --
--- Definition for trigger tr_cohort_desertion (OID = 28843) : 
+-- Definition for trigger tr_cohort_desertion (OID = 19513) : 
 --
 CREATE TRIGGER tr_cohort_desertion
     BEFORE INSERT ON "KPI_Desercion_Cohorte"
     FOR EACH ROW
     EXECUTE PROCEDURE fun_delete_cohort ();
 --
--- Definition for trigger tr_period_desertion (OID = 28844) : 
+-- Definition for trigger tr_period_desertion (OID = 19514) : 
 --
 CREATE TRIGGER tr_period_desertion
     BEFORE INSERT ON "KPI_Desercion_Periodo"
     FOR EACH ROW
     EXECUTE PROCEDURE fun_delete_period ();
 --
--- Definition for trigger tr_relacion (OID = 28845) : 
+-- Definition for trigger tr_relacion (OID = 19515) : 
 --
 CREATE TRIGGER tr_relacion
     AFTER INSERT OR UPDATE ON "KPI_Formacion"
     FOR EACH ROW
     EXECUTE PROCEDURE fun_actua_relacion ();
 --
--- Definition for trigger tr_for_dep (OID = 28846) : 
+-- Definition for trigger tr_est_dep (OID = 19516) : 
 --
 SET search_path = public, pg_catalog;
-CREATE TRIGGER tr_for_dep
-    BEFORE INSERT ON formacion_departamento
-    FOR EACH ROW
-    EXECUTE PROCEDURE "Actua_Formacion_Dep" ();
---
--- Definition for trigger tr_kpi_form (OID = 28847) : 
---
-CREATE TRIGGER tr_kpi_form
-    AFTER INSERT OR UPDATE ON formacion_departamento
-    FOR EACH ROW
-    EXECUTE PROCEDURE "Fun_Actua_KPI_Form" ();
---
--- Definition for trigger tr_est_dep (OID = 28849) : 
---
 CREATE TRIGGER tr_est_dep
     BEFORE INSERT ON estudiantes_departamento
     FOR EACH ROW
     EXECUTE PROCEDURE "Actua_Estudiantes_Dep" ();
 --
--- Definition for trigger tr_kpi_est_doc (OID = 29154) : 
+-- Definition for trigger tr_for_dep (OID = 19517) : 
+--
+CREATE TRIGGER tr_for_dep
+    BEFORE INSERT ON formacion_departamento
+    FOR EACH ROW
+    EXECUTE PROCEDURE "Actua_Formacion_Dep" ();
+--
+-- Definition for trigger tr_kpi_est_doc (OID = 19518) : 
 --
 CREATE TRIGGER tr_kpi_est_doc
     AFTER INSERT OR UPDATE ON estudiantes_departamento
     FOR EACH ROW
     EXECUTE PROCEDURE "Fun_Actua_KPI_Est_Doc" ();
 --
--- Definition for trigger tr_kpi_est_doc_udenar (OID = 29188) : 
+-- Definition for trigger tr_kpi_form (OID = 19519) : 
+--
+CREATE TRIGGER tr_kpi_form
+    AFTER INSERT OR UPDATE ON formacion_departamento
+    FOR EACH ROW
+    EXECUTE PROCEDURE "Fun_Actua_KPI_Form" ();
+--
+-- Definition for trigger tr_kpi_est_doc_udenar (OID = 19804) : 
 --
 CREATE TRIGGER tr_kpi_est_doc_udenar
     AFTER INSERT OR UPDATE ON estudiantes_departamento
     FOR EACH ROW
     EXECUTE PROCEDURE "Fun_Actua_KPI_Est_Doc_UDENAR" ();
 --
--- Data for sequence public.formacion_departamento_cod_forma_dep_seq (OID = 28707)
+-- Data for sequence public.estudiantes_departamento_cod_est_dep_seq (OID = 19462)
+--
+SELECT pg_catalog.setval('estudiantes_departamento_cod_est_dep_seq', 1, false);
+--
+-- Data for sequence public.formacion_departamento_cod_forma_dep_seq (OID = 19470)
 --
 SELECT pg_catalog.setval('formacion_departamento_cod_forma_dep_seq', 11445, true);
---
--- Data for sequence public.estudiantes_departamento_cod_est_dep_seq (OID = 28736)
---
-SELECT pg_catalog.setval('estudiantes_departamento_cod_est_dep_seq', 121203, true);
 --
 -- Comments
 --
